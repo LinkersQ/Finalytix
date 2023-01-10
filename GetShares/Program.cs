@@ -9,6 +9,7 @@ using Npgsql;
 using System.Xml.Linq;
 using System.Runtime.Intrinsics.Arm;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace GetShares
 {
@@ -16,6 +17,7 @@ namespace GetShares
     {
         static void Main(string[] args)
         {
+            print("Запуск", false);
             //Переменные
             string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
             string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
@@ -24,23 +26,49 @@ namespace GetShares
             //Исполнение
             SharesResponse shares = GetSharesFromTinkoffInvestApi(token);
             List<ShareObject> tinkoffSharesList = GenerateSharesObjects(shares);
-            Console.WriteLine("Получено {0} инструментов", tinkoffSharesList.Count);
-            //List<ShareObject> dbSharesList = GetSharesFromDB(connectionString);
-            List<ShareObject> sharesToAddList = tinkoffSharesList;
+            List<ShareObject> dbSharesList = GetSharesFromDB(connectionString);
+            List<ShareObject> sharesToAddList = null;
+            
 
-            countOfAddedShares = AddSharesToDB(connectionString, sharesToAddList);
-            /*
+
             //Если получен список акций из БД проводим сверку с акциями, полученными из Тинькофф
             if (dbSharesList is not null)
             {
-
+                sharesToAddList = EqualLists(tinkoffSharesList, dbSharesList);
             }
+            //Если в бд нет данных - просто записываем все что получили от Тинькофф в таблицу
             else
             {
-                
+                countOfAddedShares = AddSharesToDB(connectionString, tinkoffSharesList);
             }
-            */
+            
 
+        }
+
+        private static List<ShareObject> EqualLists(List<ShareObject> tinkoffSharesList, List<ShareObject> dbSharesList)
+        {
+            print("Сравниваю полученные списки");
+            List<ShareObject> returnShareList = new List<ShareObject>();
+
+            if (returnShareList.Count == 0)
+                print("Нет акций, которые требуется добавить");
+            else
+                print("Требуется добавить " + returnShareList.Count + " акций.");
+
+            return returnShareList;
+        }
+
+        //Вывод лога в консоль
+        private static void print(string message, bool isError)
+        {
+            if (isError)
+                Console.WriteLine("{0} ERROR: {1}", DateTime.Now, message);
+            else
+                Console.WriteLine("{0} INFO: {1}", DateTime.Now, message);
+        }
+        private static void print(string message)
+        {
+                Console.WriteLine("{0} INFO: {1}", DateTime.Now, message);
         }
 
         //Вставляем акции в БД 
@@ -64,7 +92,7 @@ namespace GetShares
             {
                 foreach(var shareObj in sharesToAddList)
                 { 
-                    var dBRequest = "INSERT INTO public.\"Shares\"(figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag) VALUES(@figi, @ticker, @class_code, @isin, @lot, @currency, @short_enabled_flag, @name, @exchange, @issue_size, @country_of_risk, @country_of_risk_name, @sector, @issue_size_plan, @trading_status, @otc_flag, @buy_available_flag, @sell_available_flag, @div_yield_flag, @share_type, @min_price_increment, @api_trade_available_flag, @uid, @real_exchange, @position_uid, @for_iis_flag, @for_qual_investor_flag, @weekend_flag, @blocked_tca_flag)";
+                    var dBRequest = "INSERT INTO public.Shares (figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag) VALUES(@figi, @ticker, @class_code, @isin, @lot, @currency, @short_enabled_flag, @name, @exchange, @issue_size, @country_of_risk, @country_of_risk_name, @sector, @issue_size_plan, @trading_status, @otc_flag, @buy_available_flag, @sell_available_flag, @div_yield_flag, @share_type, @min_price_increment, @api_trade_available_flag, @uid, @real_exchange, @position_uid, @for_iis_flag, @for_qual_investor_flag, @weekend_flag, @blocked_tca_flag)";
                     try
                     {
                         using var command = new NpgsqlCommand(dBRequest, connection);
@@ -100,7 +128,7 @@ namespace GetShares
                         command.Prepare();
                         command.ExecuteNonQuery();
 
-                        Console.WriteLine(shareObj.name + " is inserted");
+                        print(shareObj.name + " is inserted");
                         counter++;
 
                     }
@@ -128,6 +156,7 @@ namespace GetShares
         //Получаем актуальный справочник акций из БД и подготавливаем список акций для сверки
         private static List<ShareObject> GetSharesFromDB(string connString)
         {
+            print("Получаю список акций из БД");
             List<ShareObject> shObjList = new List<ShareObject>();
             Boolean allOK = true;
 
@@ -144,7 +173,7 @@ namespace GetShares
 
             if (allOK)
             {
-                var dBRequest = "SELECT figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag FROM public.\"Shares\"";
+                var dBRequest = "SELECT figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag FROM public.Shares";
                 try
                 {
                     using var command = new NpgsqlCommand(dBRequest, connection);
@@ -172,7 +201,7 @@ namespace GetShares
                         shObj.sell_available_flag = reader.GetBoolean(17);
                         shObj.div_yield_flag = reader.GetBoolean(18);
                         shObj.share_type = reader.GetString(19);
-                        shObj.min_price_increment = reader.GetFloat(20);
+                        shObj.min_price_increment =  (float)reader.GetDouble(20);
                         shObj.api_trade_available_flag = reader.GetBoolean(21);
                         shObj.uid = reader.GetString(22);
                         shObj.real_exchange = reader.GetString(23);
@@ -188,7 +217,8 @@ namespace GetShares
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.ToString());
+                    print("В GetSharesFromDB возникла ошибка", true);
+                    print(ex.ToString(), true);
                     allOK = false;
 
                 }
@@ -198,11 +228,8 @@ namespace GetShares
             {
                 return shObjList;
             }
-
-            
-
-            
-            return null;
+            print("БД: Получено " + shObjList.Count + " инструментов.");
+            return shObjList;
             
         }
 
@@ -214,8 +241,6 @@ namespace GetShares
             {
                 if (shares.Instruments.Count > 0)
                 {
-                    Console.WriteLine("Получено {0} инструментов. Начинаю запись.", shares.Instruments.Count);
-                    
                     foreach (var share in shares.Instruments)
                     {
                         ShareObject shObj = new ShareObject
@@ -255,20 +280,21 @@ namespace GetShares
                 }
                 else
                 {
-                    Console.WriteLine("Нет акций для записи");
+                    print("Нет акций для записи");
                 }
             }
             else
             {
-                Console.WriteLine("Не удалось получить список акций");
+                print("Не удалось получить список акций");
             }
-
+            print("Тинькофф: Получено " + _shareList.Count + " инструментов.");
             return _shareList;
         }
 
         //Подключаемся к Тинькофф и забираем список акций
         private static SharesResponse GetSharesFromTinkoffInvestApi(string token)
         {
+            print("Получаю список акций у Тинькофф");
             var client = InvestApiClientFactory.Create(token);
             SharesResponse shares = null;
             try
@@ -277,7 +303,8 @@ namespace GetShares
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                print("В SharesResponse возникла ошибка", true);
+                print(ex.ToString(),true);
             }
 
             return shares;
