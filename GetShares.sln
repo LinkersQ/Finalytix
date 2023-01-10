@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetShares", "GetShares\GetShares.csproj", "{C6B70C18-5678-4C53-BA86-23EFC578067D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinInvestLibrary", "..\FinInvestLibrary\FinInvestLibrary.csproj", "{25DD5585-7A6B-49DE-9A9E-8AD676AFC9A6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C6B70C18-5678-4C53-BA86-23EFC578067D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6B70C18-5678-4C53-BA86-23EFC578067D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6B70C18-5678-4C53-BA86-23EFC578067D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6B70C18-5678-4C53-BA86-23EFC578067D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25DD5585-7A6B-49DE-9A9E-8AD676AFC9A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25DD5585-7A6B-49DE-9A9E-8AD676AFC9A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25DD5585-7A6B-49DE-9A9E-8AD676AFC9A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25DD5585-7A6B-49DE-9A9E-8AD676AFC9A6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {72AE406B-C1EA-4FEA-9853-8CE392D46F4C}
+	EndGlobalSection
+EndGlobal
