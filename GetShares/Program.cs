@@ -34,7 +34,8 @@ namespace GetShares
             //Если получен список акций из БД проводим сверку с акциями, полученными из Тинькофф
             if (dbSharesList is not null)
             {
-                sharesToAddList = EqualLists(tinkoffSharesList, dbSharesList);
+                sharesToAddList = EqualSharesLists(tinkoffSharesList, dbSharesList);
+                countOfAddedShares = AddSharesToDB(connectionString, sharesToAddList);
             }
             //Если в бд нет данных - просто записываем все что получили от Тинькофф в таблицу
             else
@@ -45,10 +46,22 @@ namespace GetShares
 
         }
 
-        private static List<ShareObject> EqualLists(List<ShareObject> tinkoffSharesList, List<ShareObject> dbSharesList)
+        private static List<ShareObject> EqualSharesLists(List<ShareObject> tinkoffSharesList, List<ShareObject> dbSharesList)
         {
             print("Сравниваю полученные списки");
             List<ShareObject> returnShareList = new List<ShareObject>();
+
+            foreach(var tinkoffShareObj in tinkoffSharesList)
+            {
+                ShareObject objToAdd = null;
+                objToAdd = dbSharesList.Find(a => a.figi == tinkoffShareObj.figi); //пробуем найти совпадение в БД
+                if (objToAdd is null) //если не находим
+                {
+                    objToAdd = tinkoffShareObj; // присваиваем не найденый объект объекту для инсерта в БД
+                    returnShareList.Add(objToAdd);
+                    print("Не найден Figi: " + objToAdd.figi);
+                }
+            }
 
             if (returnShareList.Count == 0)
                 print("Нет акций, которые требуется добавить");
@@ -128,7 +141,7 @@ namespace GetShares
                         command.Prepare();
                         command.ExecuteNonQuery();
 
-                        print(shareObj.name + " is inserted");
+                        print(shareObj.figi + " is inserted");
                         counter++;
 
                     }
