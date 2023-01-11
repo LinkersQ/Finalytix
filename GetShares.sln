@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetShares", "GetShares\GetShares.csproj", "{C6B70C18-5678-4C53-BA86-23EFC578067D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GetShares", "GetShares\GetShares.csproj", "{C6B70C18-5678-4C53-BA86-23EFC578067D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinInvestLibrary", "..\FinInvestLibrary\FinInvestLibrary.csproj", "{25DD5585-7A6B-49DE-9A9E-8AD676AFC9A6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinInvestLibrary", "..\FinInvestLibrary\FinInvestLibrary.csproj", "{25DD5585-7A6B-49DE-9A9E-8AD676AFC9A6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParseCandles", "ParseCandles\ParseCandles.csproj", "{04C8BD3D-28D9-43A5-B2A6-52AAF63C5E90}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ParseCandles", "ParseCandles\ParseCandles.csproj", "{04C8BD3D-28D9-43A5-B2A6-52AAF63C5E90}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
