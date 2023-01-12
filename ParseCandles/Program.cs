@@ -1,8 +1,11 @@
-﻿using System.Configuration;
+﻿using System.Collections.Generic;
+using System.Configuration;
+using System.Globalization;
 using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using FinInvestLibrary.Objects;
+using Npgsql;
 
 namespace ParseCandles
 {
@@ -19,6 +22,9 @@ namespace ParseCandles
             string errorPath = parrentPath + "\\Error";
             string zipPath = parrentPath + "\\Zip";
 
+            bool existNewFiles = false;
+            string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
+
             print("Запуск ParseCandles", false);
             
 
@@ -31,51 +37,208 @@ namespace ParseCandles
             CreatePaths(zipPath);
 
             //Получаем список файлов
-            print("Получаем список файлов");
-            var files = GetCandleFileList(parrentPath);
-            print("Найдено " + files.Count + " файлов");
+            print("Получаем список архивов с историческими свечами");
+            var files = GetCandleZipFileList(parrentPath);
+            print("Найдено " + files.Count + " архивов");
 
-            //Проверяем файлы на существование директорий с аналогичным имененем
-            print("Проверяем наличие разархивированного архива");
-            foreach (var file in files)
+            //Если есть ZIP файлы - проводим разархивирование
+            if (files.Count > 0)
             {
-                string directoryName = file.FileNameWithoutPath.Split('.')[0];
-                bool isDirectotyExist = Directory.Exists(pendingPath + "\\" + directoryName);
-                if (isDirectotyExist)
+                int totalFiles = files.Count;
+                int totalErrors = 0;
+                int totalUnziped = 0;
+
+                //Проверяем файлы на существование директорий с аналогичным имененем
+                print("Проверяем наличие разархивированного архива");
+                foreach (var file in files)
                 {
-                    file.UnzipedDirectoryPath = pendingPath + "\\" + directoryName;
-                    file.existUnzipedFilePath = isDirectotyExist;
-                    print("Найдена директория " + directoryName + ". Реальный путь " + file.UnzipedDirectoryPath);
+                    string directoryName = file.FileNameWithoutPath.Split('.')[0];
+                    bool isDirectotyExist = Directory.Exists(pendingPath + "\\" + directoryName);
+                    if (isDirectotyExist)
+                    {
+                        file.UnzipedDirectoryPath = pendingPath + "\\" + directoryName;
+                        file.existUnzipedFilePath = isDirectotyExist;
+                        print("Найдена директория " + directoryName + ". Реальный путь " + file.UnzipedDirectoryPath);
+                    }
                 }
+
+               
+                //Разархивируем файлы, которые не разархивировались раньше
+                print("Разархивируем архивы, проверяя на существоваении в папке Pending");
+                foreach (var file in files)
+                {
+                    bool unzipDirectoryName = unZipDirectory(file, pendingPath);
+                    if (unzipDirectoryName)
+                    {
+
+                        File.Move(file.FileNameWithPath, zipPath + "\\" + file.FileNameWithoutPath);
+                        print("Архив" + file.FileNameWithPath + " перемещен в дирректорию " + zipPath);
+                        totalUnziped++;
+                    }
+                    else
+                    {
+
+                        File.Move(file.FileNameWithPath, errorPath + "\\" + file.FileNameWithoutPath);
+                        print("Архив " + file.FileNameWithPath + " перемещен в " + errorPath,true);
+                        totalErrors++;
+                    }
+                }
+                existNewFiles = true;
+                print("Всего обработано архивов: " + totalFiles);
+                print("\tИз них разархивировано: " + totalUnziped);
+                print("\tНе удалось разархивировать: " + totalErrors);
+            }
+            else
+            {
+                print("Отсутсвуют необработанные архивы");
             }
 
-            //Разархивируем файлы, которые не разархивировались раньше
-            print("Разархивируем файлы, проверяя на существоваении в папке Pending");
-            foreach (var file in files)
+            //Формируем список файлов для записи в БД
+            print("Проверяю наличие необработанных исторических свечных файлов ");
+            List<HistoryCandleDirectory> historyCandleDirectoryList = GetCandlesDirectoryList(pendingPath);
+            print("Найдено " + historyCandleDirectoryList.Count.ToString() + " директорий c необработанными файлами.");
+
+            //Начинаем миграцию данных в БД
+            print("Начинаем миграцию данных в БД");
+            foreach(var directory in historyCandleDirectoryList)
             {
-                bool unzipDirectoryName = unZipFiles(file, pendingPath);
-                if (unzipDirectoryName)
+                
+                print("Обрабатываю директорию: " + directory.path);
+                foreach (var file in directory.files)
                 {
-                    
-                    File.Move(file.FileNameWithPath, zipPath + "\\" + file.FileNameWithoutPath);
-                    print(file.FileNameWithPath + " успешно разархивирован и перемещен в дирректорию " + zipPath);
+                    DateTime dateTime= DateTime.Now;
+                    print("\tОбрабатываю файл: " + file);
+                    StreamReader reader= new StreamReader(file);
+                    string[] lines = File.ReadAllLines(file);
+                    int counter = 0;
+
+                    foreach (var line in lines)
+                    { 
+                        Candle candle = new Candle();
+                        candle.insertdate= dateTime;
+                        candle.figi = new DirectoryInfo(directory.path).Name.Split('_')[0];
+                        candle.source_filename = file;
+                   
+                        var returnCandle = convertLine2Candle(line, candle);
+
+                        InsertCandleInDB(candle, connectionString);
+                        counter++;
+                    }
+                    reader.Close();
+
+                    print("Файл " + file + " обработан.");
+                    print("Вставлено " + counter + " строк.");
+                    //Console.WriteLine(file);
+                    //Console.WriteLine(donePath + "\\" + new DirectoryInfo(directory.path).Name.Split('_')[0] + "\\" + Path.GetFileName(file));
+                    //File.Move(file, donePath + "\\" + new DirectoryInfo(directory.path).Name.Split('_')[0] + "\\" + Path.GetFileName(file));
+                    //print("Файл " + file + " перенесен в " + donePath);
                 }
-                else
-                {
-                    
-                    File.Move(file.FileNameWithPath, errorPath + "\\" + file.FileNameWithoutPath);
-                    print("Не удалось разархивировать файл " + file.FileNameWithPath + ". Перемещен в " + errorPath);
-                }
+
             }
+                
+
+            
+            
         }
 
-        private static bool unZipFiles(HistoryCandleFile file, string targetPath)
+        private static void InsertCandleInDB(Candle candle, string connString)
+        {
+            Boolean allOK = true;
+
+            using var connection = new NpgsqlConnection(connString);
+            try
+            {
+                connection.Open();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                allOK = false;
+            }
+
+            if (allOK)
+            {
+                var dbRequest = "INSERT INTO history_candles (figi, candle_start_dt, open_price, close_price, max_price, min_price, volume,source_filename, insertdate, guidfromfile) values (@figi, @candle_start_dt, @open_price, @close_price, @max_price, @min_price, @volume,@source_filename, @insertdate, @guidfromfile)";
+                try
+                {
+                    using var command = new NpgsqlCommand(dbRequest,connection);
+                    command.Parameters.AddWithValue("figi", candle.figi);
+                    command.Parameters.AddWithValue("candle_start_dt", candle.candle_start_dt);
+                    command.Parameters.AddWithValue("open_price", candle.open_price);
+                    command.Parameters.AddWithValue("close_price", candle.close_price);
+                    command.Parameters.AddWithValue("max_price", candle.max_price);
+                    command.Parameters.AddWithValue("min_price", candle.min_price);
+                    command.Parameters.AddWithValue("volume", candle.volume);
+                    command.Parameters.AddWithValue("source_filename", candle.source_filename);
+                    command.Parameters.AddWithValue("guidfromfile", candle.guid);
+                    command.Parameters.AddWithValue("insertdate", candle.insertdate);
+                    command.Prepare();
+                    command.ExecuteNonQuery();
+            
+                }
+                catch (Exception ex)
+                { 
+                    print(ex.ToString());
+                }
+            }    
+        }
+
+        private static Candle convertLine2Candle(string line, Candle candle)
+        {
+            Candle returnCandle = null;
+
+            var data4Candle = line.Split(';');
+            candle.guid = data4Candle[0].ToString();
+            candle.candle_start_dt = Convert.ToDateTime(data4Candle[1]);
+            candle.open_price = float.Parse(data4Candle[2], CultureInfo.InvariantCulture.NumberFormat);
+            candle.close_price = float.Parse(data4Candle[3],CultureInfo.InvariantCulture.NumberFormat);
+            candle.max_price = float.Parse(data4Candle[4], CultureInfo.InvariantCulture.NumberFormat);
+            candle.min_price = float.Parse(data4Candle[5], CultureInfo.InvariantCulture.NumberFormat);
+            candle.volume = Convert.ToInt32(data4Candle[6]);
+            returnCandle = candle;
+            candle = null;
+            return returnCandle;
+        }
+
+        private static List<HistoryCandleDirectory> GetCandlesDirectoryList(string pendingPath)
+        {
+            List <HistoryCandleDirectory> returnList = new List<HistoryCandleDirectory>();
+            
+            var directorys = Directory.GetDirectories(pendingPath);
+            foreach ( var directory in directorys ) 
+            {
+                try
+                {
+                    var candleDirectory = new HistoryCandleDirectory();
+                    candleDirectory.path = directory;
+                    candleDirectory.files = Directory.GetFiles(directory);
+                    returnList.Add(candleDirectory);
+                }
+                catch (Exception ex)
+                {
+                    print("GetCandlesDirectoryList", true);
+                    print(ex.Message, true);
+                }
+            }
+            return returnList;
+        }
+
+        private static bool unZipDirectory(HistoryCandleZipDirectory file, string targetPath)
         {
             try
             {
-                print("Работаю над файлом " + file.FileNameWithoutPath);
-                ZipFile.ExtractToDirectory(file.FileNameWithPath, targetPath + "\\" + file.FileNameWithoutPath.Split('.')[0]);
-                file.existUnzipedFilePath = true;
+                if (file.existUnzipedFilePath == false)
+                {
+                    print("Работаю над файлом " + file.FileNameWithoutPath);
+                    ZipFile.ExtractToDirectory(file.FileNameWithPath, targetPath + "\\" + file.FileNameWithoutPath.Split('.')[0]);
+                    file.existUnzipedFilePath = true;
+                    file.UnzipedDirectoryPath = targetPath + "\\" + file.FileNameWithoutPath.Split('.')[0];
+                }
+                else
+                {
+                    print("Файл " + file.FileNameWithoutPath + " не требует разархивирования.");
+                    return file.existUnzipedFilePath;
+                }
             }
             catch (Exception ex) 
             {
@@ -102,14 +265,14 @@ namespace ParseCandles
             
         }
 
-        private static List<HistoryCandleFile> GetCandleFileList(string directory)
+        private static List<HistoryCandleZipDirectory> GetCandleZipFileList(string directory)
         {
-            List<HistoryCandleFile> historyCandleFiles = new List<HistoryCandleFile>();
+            List<HistoryCandleZipDirectory> historyCandleFiles = new List<HistoryCandleZipDirectory>();
             var files = Directory.GetFiles(directory, "*.zip");
 
             foreach (var file in files)
             {
-                HistoryCandleFile historyCandleFile = new HistoryCandleFile();
+                HistoryCandleZipDirectory historyCandleFile = new HistoryCandleZipDirectory();
                 historyCandleFile.FileNameWithPath = file;
                 historyCandleFile.FileNameWithoutPath = Path.GetFileName(file);
                 historyCandleFiles.Add(historyCandleFile);
