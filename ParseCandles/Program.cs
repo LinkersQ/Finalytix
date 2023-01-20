@@ -158,7 +158,7 @@ namespace ParseCandles
 
             if (allOK)
             {
-                var dbRequest = "INSERT INTO history_candles (figi, candle_start_dt, open_price, close_price, max_price, min_price, volume,source_filename, insertdate, guidfromfile) values (@figi, @candle_start_dt, @open_price, @close_price, @max_price, @min_price, @volume,@source_filename, @insertdate, @guidfromfile)";
+                var dbRequest = "INSERT INTO cold_history_candles (figi, candle_start_dt, open_price, close_price, max_price, min_price, volume,source_filename, insertdate, guidfromfile, source) values (@figi, @candle_start_dt, @open_price, @close_price, @max_price, @min_price, @volume,@source_filename, @insertdate, @guidfromfile, @source)";
                 try
                 {
                     using var command = new NpgsqlCommand(dbRequest,connection);
@@ -172,6 +172,7 @@ namespace ParseCandles
                     command.Parameters.AddWithValue("source_filename", candle.source_filename);
                     command.Parameters.AddWithValue("guidfromfile", candle.guid);
                     command.Parameters.AddWithValue("insertdate", candle.insertdate);
+                    command.Parameters.AddWithValue("source", "download_md.sh");
                     command.Prepare();
                     command.ExecuteNonQuery();
             
