@@ -1,11 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Configuration;
+﻿using FinInvestLibrary.Objects;
+using Npgsql;
 using System.Globalization;
 using System.IO.Compression;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using FinInvestLibrary.Objects;
-using Npgsql;
 
 namespace ParseCandles
 {
@@ -26,7 +22,7 @@ namespace ParseCandles
             string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
 
             print("Запуск ParseCandles", false);
-            
+
 
             //Создаем директории для работы процесса
             print("Создаем директории для работы процесса");
@@ -62,7 +58,7 @@ namespace ParseCandles
                     }
                 }
 
-               
+
                 //Разархивируем файлы, которые не разархивировались раньше
                 print("Разархивируем архивы, проверяя на существоваении в папке Pending");
                 foreach (var file in files)
@@ -79,7 +75,7 @@ namespace ParseCandles
                     {
 
                         File.Move(file.FileNameWithPath, errorPath + "\\" + file.FileNameWithoutPath);
-                        print("Архив " + file.FileNameWithPath + " перемещен в " + errorPath,true);
+                        print("Архив " + file.FileNameWithPath + " перемещен в " + errorPath, true);
                         totalErrors++;
                     }
                 }
@@ -100,25 +96,25 @@ namespace ParseCandles
 
             //Начинаем миграцию данных в БД
             print("Начинаем миграцию данных в БД");
-            foreach(var directory in historyCandleDirectoryList)
+            foreach (var directory in historyCandleDirectoryList)
             {
-                
+
                 print("Обрабатываю директорию: " + directory.path);
                 foreach (var file in directory.files)
                 {
-                    DateTime dateTime= DateTime.Now;
+                    DateTime dateTime = DateTime.Now;
                     print("\tОбрабатываю файл: " + file);
-                    StreamReader reader= new StreamReader(file);
+                    StreamReader reader = new StreamReader(file);
                     string[] lines = File.ReadAllLines(file);
                     int counter = 0;
 
                     foreach (var line in lines)
-                    { 
+                    {
                         Candle candle = new Candle();
-                        candle.insertdate= dateTime;
+                        candle.insertdate = dateTime;
                         candle.figi = new DirectoryInfo(directory.path).Name.Split('_')[0];
                         candle.source_filename = file;
-                   
+
                         var returnCandle = convertLine2Candle(line, candle);
 
                         InsertCandleInDB(candle, connectionString);
@@ -135,10 +131,10 @@ namespace ParseCandles
                 }
 
             }
-                
 
-            
-            
+
+
+
         }
 
         private static void InsertCandleInDB(Candle candle, string connString)
@@ -161,7 +157,7 @@ namespace ParseCandles
                 var dbRequest = "INSERT INTO cold_history_candles (figi, candle_start_dt, open_price, close_price, max_price, min_price, volume,source_filename, insertdate, guidfromfile, source) values (@figi, @candle_start_dt, @open_price, @close_price, @max_price, @min_price, @volume,@source_filename, @insertdate, @guidfromfile, @source)";
                 try
                 {
-                    using var command = new NpgsqlCommand(dbRequest,connection);
+                    using var command = new NpgsqlCommand(dbRequest, connection);
                     command.Parameters.AddWithValue("figi", candle.figi);
                     command.Parameters.AddWithValue("candle_start_dt", candle.candle_start_dt);
                     command.Parameters.AddWithValue("open_price", candle.open_price);
@@ -175,13 +171,13 @@ namespace ParseCandles
                     command.Parameters.AddWithValue("source", "download_md.sh");
                     command.Prepare();
                     command.ExecuteNonQuery();
-            
+
                 }
                 catch (Exception ex)
-                { 
+                {
                     print(ex.ToString());
                 }
-            }    
+            }
         }
 
         private static Candle convertLine2Candle(string line, Candle candle)
@@ -192,7 +188,7 @@ namespace ParseCandles
             candle.guid = data4Candle[0].ToString();
             candle.candle_start_dt = Convert.ToDateTime(data4Candle[1]);
             candle.open_price = float.Parse(data4Candle[2], CultureInfo.InvariantCulture.NumberFormat);
-            candle.close_price = float.Parse(data4Candle[3],CultureInfo.InvariantCulture.NumberFormat);
+            candle.close_price = float.Parse(data4Candle[3], CultureInfo.InvariantCulture.NumberFormat);
             candle.max_price = float.Parse(data4Candle[4], CultureInfo.InvariantCulture.NumberFormat);
             candle.min_price = float.Parse(data4Candle[5], CultureInfo.InvariantCulture.NumberFormat);
             candle.volume = Convert.ToInt32(data4Candle[6]);
@@ -203,10 +199,10 @@ namespace ParseCandles
 
         private static List<HistoryCandleDirectory> GetCandlesDirectoryList(string pendingPath)
         {
-            List <HistoryCandleDirectory> returnList = new List<HistoryCandleDirectory>();
-            
+            List<HistoryCandleDirectory> returnList = new List<HistoryCandleDirectory>();
+
             var directorys = Directory.GetDirectories(pendingPath);
-            foreach ( var directory in directorys ) 
+            foreach (var directory in directorys)
             {
                 try
                 {
@@ -241,7 +237,7 @@ namespace ParseCandles
                     return file.existUnzipedFilePath;
                 }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 print("В процессе разархивирования файла " + file.FileNameWithPath + " возникла ощибка.");
 
@@ -263,7 +259,7 @@ namespace ParseCandles
             {
                 print("Директория " + directoryName + " уже сущесвует.");
             }
-            
+
         }
 
         private static List<HistoryCandleZipDirectory> GetCandleZipFileList(string directory)

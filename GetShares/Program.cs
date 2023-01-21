@@ -1,15 +1,8 @@
-﻿using System.Net.WebSockets;
-using Tinkoff.InvestApi;
-using FinInvestLibrary.Objects;
-using Tinkoff.InvestApi.V1;
-using System.Text;
-using System.Globalization;
-using System.Data;
+﻿using FinInvestLibrary.Objects;
 using Npgsql;
-using System.Xml.Linq;
-using System.Runtime.Intrinsics.Arm;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+using System.Globalization;
+using Tinkoff.InvestApi;
+using Tinkoff.InvestApi.V1;
 
 namespace GetShares
 {
@@ -28,8 +21,6 @@ namespace GetShares
             List<ShareObject> tinkoffSharesList = GenerateSharesObjects(shares);
             List<ShareObject> dbSharesList = GetSharesFromDB(connectionString);
             List<ShareObject> sharesToAddList = null;
-            
-
 
             //Если получен список акций из БД проводим сверку с акциями, полученными из Тинькофф
             if (dbSharesList is not null)
@@ -42,7 +33,7 @@ namespace GetShares
             {
                 countOfAddedShares = AddSharesToDB(connectionString, tinkoffSharesList);
             }
-            
+
 
         }
 
@@ -51,7 +42,7 @@ namespace GetShares
             print("Сравниваю полученные списки");
             List<ShareObject> returnShareList = new List<ShareObject>();
 
-            foreach(var tinkoffShareObj in tinkoffSharesList)
+            foreach (var tinkoffShareObj in tinkoffSharesList)
             {
                 ShareObject objToAdd = null;
                 objToAdd = dbSharesList.Find(a => a.figi == tinkoffShareObj.figi); //пробуем найти совпадение в БД
@@ -81,7 +72,7 @@ namespace GetShares
         }
         private static void print(string message)
         {
-                Console.WriteLine("{0} INFO: {1}", DateTime.Now, message);
+            Console.WriteLine("{0} INFO: {1}", DateTime.Now, message);
         }
 
         //Вставляем акции в БД 
@@ -103,8 +94,8 @@ namespace GetShares
 
             if (allOK)
             {
-                foreach(var shareObj in sharesToAddList)
-                { 
+                foreach (var shareObj in sharesToAddList)
+                {
                     var dBRequest = "INSERT INTO public.Shares (figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag) VALUES(@figi, @ticker, @class_code, @isin, @lot, @currency, @short_enabled_flag, @name, @exchange, @issue_size, @country_of_risk, @country_of_risk_name, @sector, @issue_size_plan, @trading_status, @otc_flag, @buy_available_flag, @sell_available_flag, @div_yield_flag, @share_type, @min_price_increment, @api_trade_available_flag, @uid, @real_exchange, @position_uid, @for_iis_flag, @for_qual_investor_flag, @weekend_flag, @blocked_tca_flag)";
                     try
                     {
@@ -214,7 +205,7 @@ namespace GetShares
                         shObj.sell_available_flag = reader.GetBoolean(17);
                         shObj.div_yield_flag = reader.GetBoolean(18);
                         shObj.share_type = reader.GetString(19);
-                        shObj.min_price_increment =  (float)reader.GetDouble(20);
+                        shObj.min_price_increment = (float)reader.GetDouble(20);
                         shObj.api_trade_available_flag = reader.GetBoolean(21);
                         shObj.uid = reader.GetString(22);
                         shObj.real_exchange = reader.GetString(23);
@@ -235,7 +226,7 @@ namespace GetShares
                     allOK = false;
 
                 }
-                
+
             }
             else
             {
@@ -243,7 +234,7 @@ namespace GetShares
             }
             print("БД: Получено " + shObjList.Count + " инструментов.");
             return shObjList;
-            
+
         }
 
         //Передаем список полученных акций из GetSharesFromTinkoffInvestApi и формируем список объектов ShareObject (список акций для сверки с базой данных)
@@ -287,7 +278,7 @@ namespace GetShares
                             for_qual_investor_flag = share.ForQualInvestorFlag,
                             weekend_flag = share.WeekendFlag,
                             blocked_tca_flag = share.BlockedTcaFlag
-                    };
+                        };
                         _shareList.Add(shObj);
                     }
                 }
@@ -317,7 +308,7 @@ namespace GetShares
             catch (Exception ex)
             {
                 print("В SharesResponse возникла ошибка", true);
-                print(ex.ToString(),true);
+                print(ex.ToString(), true);
             }
 
             return shares;
