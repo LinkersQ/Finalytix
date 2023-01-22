@@ -16,8 +16,9 @@ namespace GetWarmCandles
             //Токен доступа к Тинькофф
             string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
             string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
+            int requesTimeOutInterval = 0; //in milliseconds
 
-            int searchDayDeep = 3;
+            int searchDayDeep = 1;
             DateTime currentDatetime = DateTime.Now;
             //Получаем список часов и дат на интервале searchDayDeep - позже используем для сверки с реально существующими.
             List<DateTime> ethalonDatesList = GetDateList(DateTime.Now, currentDatetime.AddDays(-searchDayDeep));
@@ -30,29 +31,31 @@ namespace GetWarmCandles
             List<GetCandlesRequest> candlesRequests = GetCandlesRequestObjects(connectionString, searchDayDeep, ethalonDatesList, shareObjects);
 
             //Запрашиваем Тинькофф с целью получить свечи за указанные в запросе периоды
-            List<GetCandlesResponse> candleList = GetCandlesResponseObjects(token, candlesRequests);
+            List<CandleResponceWithFigiUID> candleListWithFigi = GetCandlesResponseObjects(requesTimeOutInterval,token, candlesRequests);
 
-            Console.WriteLine("Press any key...");
-            Console.ReadLine();
+
 
             //Записываем полученный результат в таблицу Warm_History_Candles
-            foreach (var candleCollection in candleList)
-            { 
-                foreach(var candle in candleCollection.Candles)
-                {
-                    bool writeResult = WriteWarmCandles(candle);
-                }
+            DateTime warmInsertStart = DateTime.Now;
+            foreach (var candleCollection in candleListWithFigi)
+            {
+                DateTime insertDateTime = DateTime.UtcNow;
+                bool res = WriteWarmCandles(candleCollection, connectionString, insertDateTime);
             }
+            DateTime warmInsertFinish = DateTime.Now;
+            Console.WriteLine((warmInsertFinish - warmInsertStart).TotalSeconds / 60);
 
-            Console.WriteLine(candleList.ToString());
 
 
         }
 
-        private static bool WriteWarmCandles(ShareObject share, HistoricCandle candle, string connString)
+        private static bool WriteWarmCandles(CandleResponceWithFigiUID candleObjWithFigi, string connString, DateTime insertDate)
         {
             Boolean allOK = true;
-            int counter = 0;
+            int localTotalCounter = 0;
+            int localWritedCounter = 0;
+            int localNotNeedWritCounter = 0;
+
 
             using var connection = new NpgsqlConnection(connString);
             try
@@ -67,65 +70,100 @@ namespace GetWarmCandles
 
             if (allOK)
             {
-                var dBRequest =
-                foreach (var shareObj in sharesToAddList)
+                localTotalCounter = candleObjWithFigi.CandlesResponse.Candles.Count;
+                foreach (var candle in candleObjWithFigi.CandlesResponse.Candles)
                 {
-                    var dBRequest = "INSERT INTO public.Shares (figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag) VALUES(@figi, @ticker, @class_code, @isin, @lot, @currency, @short_enabled_flag, @name, @exchange, @issue_size, @country_of_risk, @country_of_risk_name, @sector, @issue_size_plan, @trading_status, @otc_flag, @buy_available_flag, @sell_available_flag, @div_yield_flag, @share_type, @min_price_increment, @api_trade_available_flag, @uid, @real_exchange, @position_uid, @for_iis_flag, @for_qual_investor_flag, @weekend_flag, @blocked_tca_flag)";
-                    try
+                    
+                    bool isHavingEqualData = checkForHavingData(connString, candleObjWithFigi, candle);
+                    if (isHavingEqualData is false)
                     {
-                        using var command = new NpgsqlCommand(dBRequest, connection);
-                        command.Parameters.AddWithValue("figi", shareObj.figi);
-                        command.Parameters.AddWithValue("ticker", shareObj.ticker);
-                        command.Parameters.AddWithValue("class_code", shareObj.class_code);
-                        command.Parameters.AddWithValue("isin", shareObj.isin);
-                        command.Parameters.AddWithValue("lot", shareObj.lot);
-                        command.Parameters.AddWithValue("currency", shareObj.currency);
-                        command.Parameters.AddWithValue("short_enabled_flag", shareObj.short_enabled_flag);
-                        command.Parameters.AddWithValue("name", shareObj.name);
-                        command.Parameters.AddWithValue("exchange", shareObj.exchange);
-                        command.Parameters.AddWithValue("issue_size", shareObj.issue_size);
-                        command.Parameters.AddWithValue("country_of_risk", shareObj.country_of_risk);
-                        command.Parameters.AddWithValue("country_of_risk_name", shareObj.country_of_risk_name);
-                        command.Parameters.AddWithValue("sector", shareObj.sector);
-                        command.Parameters.AddWithValue("issue_size_plan", shareObj.issue_size_plan);
-                        command.Parameters.AddWithValue("trading_status", shareObj.trading_status);
-                        command.Parameters.AddWithValue("otc_flag", shareObj.otc_flag);
-                        command.Parameters.AddWithValue("buy_available_flag", shareObj.buy_available_flag);
-                        command.Parameters.AddWithValue("sell_available_flag", shareObj.sell_available_flag);
-                        command.Parameters.AddWithValue("div_yield_flag", shareObj.div_yield_flag);
-                        command.Parameters.AddWithValue("share_type", shareObj.share_type);
-                        command.Parameters.AddWithValue("min_price_increment", shareObj.min_price_increment);
-                        command.Parameters.AddWithValue("api_trade_available_flag", shareObj.api_trade_available_flag);
-                        command.Parameters.AddWithValue("uid", shareObj.uid);
-                        command.Parameters.AddWithValue("real_exchange", shareObj.real_exchange);
-                        command.Parameters.AddWithValue("position_uid", shareObj.position_uid);
-                        command.Parameters.AddWithValue("for_iis_flag", shareObj.for_iis_flag);
-                        command.Parameters.AddWithValue("for_qual_investor_flag", shareObj.for_qual_investor_flag);
-                        command.Parameters.AddWithValue("weekend_flag", shareObj.weekend_flag);
-                        command.Parameters.AddWithValue("blocked_tca_flag", shareObj.blocked_tca_flag);
-                        command.Prepare();
-                        command.ExecuteNonQuery();
+                        
+                        try
+                        {
+                            var dBRequest = "insert into warm_history_candles (figi, candle_start_dt, open_price, close_price, max_price, min_price, volume, source_filename, insertdate, guidfromfile, source,is_close_candle) values (@figi, @candle_start_dt, @open_price, @close_price, @max_price, @min_price, @volume, @source_filename, @insertdate, @guidfromfile, @source,@is_close_candle)";
+                            using var command = new NpgsqlCommand(dBRequest, connection);
+                            command.Parameters.AddWithValue("figi", candleObjWithFigi.Figi);
+                            command.Parameters.AddWithValue("candle_start_dt", candle.Time.ToDateTime());
+                            command.Parameters.AddWithValue("open_price", float.Parse(candle.Open.Units.ToString() + "," + candle.Open.Nano.ToString()));
+                            command.Parameters.AddWithValue("close_price", float.Parse(candle.Close.Units.ToString() + "," + candle.Close.Nano.ToString()));
+                            command.Parameters.AddWithValue("max_price", float.Parse(candle.High.Units.ToString() + "," + candle.High.Nano.ToString()));
+                            command.Parameters.AddWithValue("min_price", float.Parse(candle.Low.Units.ToString() + "," + candle.Low.Nano.ToString()));
+                            command.Parameters.AddWithValue("volume", candle.Volume);
+                            command.Parameters.AddWithValue("source_filename", "no_file");
+                            command.Parameters.AddWithValue("insertdate", insertDate.ToUniversalTime());
+                            command.Parameters.AddWithValue("guidfromfile", candleObjWithFigi.Uid);
+                            command.Parameters.AddWithValue("source", "GetWarmCandlesApp");
+                            command.Parameters.AddWithValue("is_close_candle", candle.IsComplete);
+                            command.Prepare();
+                            command.ExecuteNonQuery();
+                            localWritedCounter++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.ToString());
 
-                        print(shareObj.figi + " is inserted");
-                        counter++;
-
+                        }
                     }
-
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.ToString());
-                        allOK = false;
-
-                    }
+                    else
+                        localNotNeedWritCounter++;
                 }
-
             }
             else
             {
-                return counter;
+                return allOK;
+            }
+            if (localTotalCounter > 1)
+            {
+                Console.WriteLine("figi " + candleObjWithFigi.Figi);
+                Console.WriteLine("Всего свече: " + localTotalCounter);
+                Console.WriteLine("Свечей записано: " + localWritedCounter);
+                Console.WriteLine("Свечей не требует записи: " + localNotNeedWritCounter);
             }
 
-            return counter;
+            return allOK;
+           
+           
+        }
+
+        private static bool checkForHavingData(string connString, CandleResponceWithFigiUID candleResponce, HistoricCandle candle)
+        {
+            int localCounter = 0;
+            bool isHavingCandle = false;
+            using var connection = new NpgsqlConnection(connString);
+            try
+            {
+                connection.Open();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
+            try
+            {
+                //'2023-01-21 15:00:00'
+                var dBRequest = "SELECT count(*) FROM warm_history_candles where figi = '" + candleResponce.Figi + "' and candle_start_dt = '" + candle.Time.ToDateTime().ToString("yyyy-MM-dd HH:mm") + ":00'";
+                Console.WriteLine(dBRequest);
+
+                using var command = new NpgsqlCommand(dBRequest, connection);
+                var reader = command.ExecuteScalar();
+                
+                localCounter = Convert.ToInt32(reader.ToString());
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
+            if (localCounter > 0)
+                isHavingCandle = true;
+            else
+                isHavingCandle = false;
+
+            Console.WriteLine(isHavingCandle);
+
+            return isHavingCandle;
         }
 
         /// <summary>
@@ -134,11 +172,11 @@ namespace GetWarmCandles
         /// <param name="token">Токен доступа к Tinkoff API</param>
         /// <param name="candlesRequests">Список подготовленных запросов к Tinkoff API</param>
         /// <returns></returns>
-        private static List<GetCandlesResponse> GetCandlesResponseObjects(string token, List<GetCandlesRequest> candlesRequests)
+        private static List<CandleResponceWithFigiUID> GetCandlesResponseObjects(int requesTimeOutInterval,string token, List<GetCandlesRequest> candlesRequests)
         {
             var client = InvestApiClientFactory.Create(token);
 
-            var candleList = new List<GetCandlesResponse>();
+            var candleList = new List<CandleResponceWithFigiUID>();
             int counter = 0;
             var at = DateTime.Now;
             foreach (var candleReq in candlesRequests)
@@ -148,7 +186,11 @@ namespace GetWarmCandles
                 try
                 {
                     var response = client.MarketData.GetCandles(candleReq);
-                    candleList.Add(response);
+                    CandleResponceWithFigiUID cRWFUID = new CandleResponceWithFigiUID();
+                    cRWFUID.Figi = candleReq.Figi;
+                    cRWFUID.Uid = candleReq.InstrumentId;
+                    cRWFUID.CandlesResponse = response;
+                    candleList.Add(cRWFUID);
                 }
                 catch (Exception e)
                 {
@@ -156,7 +198,7 @@ namespace GetWarmCandles
                 }
                 var b = DateTime.Now;
                 Console.WriteLine(counter + "\t" + (b - a).TotalMilliseconds + "\t" + candleReq.Figi);
-                Thread.Sleep(200);
+                Thread.Sleep(requesTimeOutInterval);
             }
             client = null;
             var bt = DateTime.Now;
@@ -189,7 +231,7 @@ namespace GetWarmCandles
                 request.Figi = share.figi;
                 request.From = Timestamp.FromDateTime(notFoundDateList.OrderBy(o => o.Ticks).First().ToUniversalTime());
                 request.To = Timestamp.FromDateTime(currentDatetime.AddMinutes(-currentDatetime.Minute).AddSeconds(-currentDatetime.Second).AddMilliseconds(-currentDatetime.Millisecond).ToUniversalTime());
-                request.Interval = CandleInterval.Hour;
+                request.Interval = CandleInterval._15Min;
                 request.InstrumentId = share.uid;
 
                 candlesRequests.Add(request);
