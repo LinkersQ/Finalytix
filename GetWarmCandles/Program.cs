@@ -29,7 +29,7 @@ namespace GetWarmCandles
             List<ShareObject> shares = GetShares(connectionString, dBConnector);
 
 
-            //Теперь формируем запрос GetCandlesRequest для каждого инструмента
+            //Теперь формируем запрос GetCandlesRequest для каждого инструментафо
             List<GetCandlesRequest> requests = GetRequests(currentDateTime, searchPeriod, tinkoffInvestApiFunctions, shares);
 
             #endregion
