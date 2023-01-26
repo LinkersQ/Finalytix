@@ -17,6 +17,7 @@ namespace ParseCandles
             string donePath = parrentPath + "\\Done";
             string errorPath = parrentPath + "\\Error";
             string zipPath = parrentPath + "\\Zip";
+            
 
             bool existNewFiles = false;
             string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";

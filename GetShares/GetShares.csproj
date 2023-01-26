@@ -20,4 +20,13 @@
     <ProjectReference Include="..\..\FinInvestLibrary\FinInvestLibrary.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="connectionString.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="token.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -12,11 +12,16 @@ namespace GetWarmCandles
     {
         static void Main(string[] args)
         {
-            string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
-            string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
+            //string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
+            //string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
             int requestTimeOutInterval = 200; //для ограничений кол-ва запросов к тинькофф апи
             DateTime currentDateTime = DateTime.UtcNow; //Tinkoff API работает всегда в UTC - придерживаемся тоже UTC;
             int searchPeriod = 24;//глубина поиска при запросе свечей
+            string appPath = Environment.CurrentDirectory;
+            string connectionStringPath = appPath + "\\connectionString.txt";
+            string connectionString = File.ReadAllText(connectionStringPath);
+            string tokenPath = appPath + "\\token.txt";
+            string token = File.ReadAllText(tokenPath); 
 
             Console.WriteLine("Запущен процесс получения свежих данных о свечах от TinkoffAPI");
 

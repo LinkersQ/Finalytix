@@ -12,9 +12,16 @@ namespace GetShares
         {
             print("Запуск", false);
             //Переменные
-            string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
-            string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
+            //string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
+            //string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
             int countOfAddedShares = 0;
+
+            string appPath = Environment.CurrentDirectory;
+            string connectionStringPath = appPath + "\\connectionString.txt";
+            string connectionString = File.ReadAllText(connectionStringPath);
+            string tokenPath = appPath + "\\token.txt";
+            string token = File.ReadAllText(tokenPath);
+
 
             //Исполнение
             SharesResponse shares = GetSharesFromTinkoffInvestApi(token);
