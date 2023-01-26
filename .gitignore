@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/GetWarmCandles/token.txt
+/GetWarmCandles/connectionString.txt
+/GetShares/token.txt
+/GetShares/connectionString.txt
