@@ -365,3 +365,5 @@ FodyWeavers.xsd
 /GetWarmCandles/connectionString.txt
 /GetShares/token.txt
 /GetShares/connectionString.txt
+/CandleWorker/token.txt
+/CandleWorker/connectionString.txt
