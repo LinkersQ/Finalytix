@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinInvestLibrary", "FinInve
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ParseCandles", "ParseCandles\ParseCandles.csproj", "{04C8BD3D-28D9-43A5-B2A6-52AAF63C5E90}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetWarmCandles", "GetWarmCandles\GetWarmCandles.csproj", "{561CDD85-6EC4-4ADA-A681-4E798999DF4E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GetWarmCandles", "GetWarmCandles\GetWarmCandles.csproj", "{561CDD85-6EC4-4ADA-A681-4E798999DF4E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CandleWorker", "CandleWorker\CandleWorker.csproj", "{ACD59BFE-0245-4540-8C6D-F3E12FA92356}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{561CDD85-6EC4-4ADA-A681-4E798999DF4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{561CDD85-6EC4-4ADA-A681-4E798999DF4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{561CDD85-6EC4-4ADA-A681-4E798999DF4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ACD59BFE-0245-4540-8C6D-F3E12FA92356}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACD59BFE-0245-4540-8C6D-F3E12FA92356}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACD59BFE-0245-4540-8C6D-F3E12FA92356}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACD59BFE-0245-4540-8C6D-F3E12FA92356}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

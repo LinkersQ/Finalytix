@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CandleWorker": {
+      "commandName": "Project",
+      "commandLineArgs": "D:\\Commands\\SyncComm.txt"
+    }
+  }
+}
