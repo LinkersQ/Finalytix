@@ -1,10 +1,5 @@
 ﻿using FinInvestLibrary.Objects;
 using Google.Protobuf.WellKnownTypes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Tinkoff.InvestApi;
 using Tinkoff.InvestApi.V1;
 
@@ -48,7 +43,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
         public List<CandleResponceWithFigiUID> GetCandlesResponseObjects(int requesTimeOutInterval, string token, List<GetCandlesRequest> candlesRequests)
         {
             var client = InvestApiClientFactory.Create(token);
-            
+
 
             var candleList = new List<CandleResponceWithFigiUID>();
             int counter = 0;

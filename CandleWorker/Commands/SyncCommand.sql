@@ -74,7 +74,8 @@ select
     ,ROW_NUMBER() OVER(PARTITION BY to_timestamp(floor((extract('epoch' from candle_start_dt) / 900 )) * 900)
                                         AT TIME ZONE 'UTC' ORDER BY candle_start_dt asc) --Ранг внутри 15-ти минутных интервалов
                                                                                         --используется для связки в процессе вычисления цен Open и Close
-from cold_history_candles hcd; -- в ПРОМе нужно использовать витрину cold_history_candles
+from cold_history_candles hcd
+where figi = 'BBG004731489'; -- в ПРОМе нужно использовать витрину cold_history_candles
 
 --вносим в tmp_cold_history_candles 15-ти минутные интервалы вместе с расчетными параметрами
 insert into tmp_cold_history_candles

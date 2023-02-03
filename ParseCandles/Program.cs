@@ -17,9 +17,6 @@ namespace ParseCandles
             string donePath = parrentPath + "\\Done";
             string errorPath = parrentPath + "\\Error";
             string zipPath = parrentPath + "\\Zip";
-            
-
-            bool existNewFiles = false;
             string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
 
             print("Запуск ParseCandles", false);
@@ -80,7 +77,7 @@ namespace ParseCandles
                         totalErrors++;
                     }
                 }
-                existNewFiles = true;
+
                 print("Всего обработано архивов: " + totalFiles);
                 print("\tИз них разархивировано: " + totalUnziped);
                 print("\tНе удалось разархивировать: " + totalErrors);
@@ -238,7 +235,7 @@ namespace ParseCandles
                     return file.existUnzipedFilePath;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 print("В процессе разархивирования файла " + file.FileNameWithPath + " возникла ощибка.");
 

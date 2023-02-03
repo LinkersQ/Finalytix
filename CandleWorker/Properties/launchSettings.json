@@ -2,7 +2,7 @@
   "profiles": {
     "CandleWorker": {
       "commandName": "Project",
-      "commandLineArgs": "D:\\Commands\\SyncComm.txt"
+      "commandLineArgs": "D:\\Dev\\GetShares\\GetShares\\CandleWorker\\Commands\\SyncCommand.sql"
     }
   }
 }

@@ -1,10 +1,5 @@
 ﻿using FinInvestLibrary.Objects;
 using Npgsql;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FinInvestLibrary.Functions.LocalOperations
 {
@@ -77,8 +72,8 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 }
                 catch (Exception ex)
                 {
-                   
-                    Console.WriteLine(ex.Message); 
+
+                    Console.WriteLine(ex.Message);
                     allOK = false;
 
                 }
@@ -88,7 +83,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
             {
                 return shObjList;
             }
-          
+
             return shObjList;
 
         }
@@ -98,7 +93,6 @@ namespace FinInvestLibrary.Functions.LocalOperations
             Boolean allOK = true;
             int localTotalCounter = 0;
             int localWritedCounter = 0;
-            int localNotNeedWritCounter = 0;
 
 
             using var connection = new NpgsqlConnection(connString);
@@ -117,30 +111,30 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 localTotalCounter = candleObjWithFigi.CandlesResponse.Candles.Count;
                 foreach (var candle in candleObjWithFigi.CandlesResponse.Candles)
                 {
-                        try
-                        {
-                            var dBRequest = "insert into tmp_warm_history_candles (figi, candle_start_dt, open_price, close_price, max_price, min_price, volume, source_filename, insertdate, guidfromfile, source,is_close_candle) values (@figi, @candle_start_dt, @open_price, @close_price, @max_price, @min_price, @volume, @source_filename, @insertdate, @guidfromfile, @source,@is_close_candle)";
-                            using var command = new NpgsqlCommand(dBRequest, connection);
-                            command.Parameters.AddWithValue("figi", candleObjWithFigi.Figi);
-                            command.Parameters.AddWithValue("candle_start_dt", candle.Time.ToDateTime());
-                            command.Parameters.AddWithValue("open_price", float.Parse(candle.Open.Units.ToString() + "," + candle.Open.Nano.ToString()));
-                            command.Parameters.AddWithValue("close_price", float.Parse(candle.Close.Units.ToString() + "," + candle.Close.Nano.ToString()));
-                            command.Parameters.AddWithValue("max_price", float.Parse(candle.High.Units.ToString() + "," + candle.High.Nano.ToString()));
-                            command.Parameters.AddWithValue("min_price", float.Parse(candle.Low.Units.ToString() + "," + candle.Low.Nano.ToString()));
-                            command.Parameters.AddWithValue("volume", candle.Volume);
-                            command.Parameters.AddWithValue("source_filename", "no_file");
-                            command.Parameters.AddWithValue("insertdate", insertDate.ToUniversalTime());
-                            command.Parameters.AddWithValue("guidfromfile", candleObjWithFigi.Uid);
-                            command.Parameters.AddWithValue("source", "GetWarmCandlesApp");
-                            command.Parameters.AddWithValue("is_close_candle", candle.IsComplete);
-                            command.Prepare();
-                            command.ExecuteNonQuery();
-                            localWritedCounter++;
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.ToString());
-                        }
+                    try
+                    {
+                        var dBRequest = "insert into tmp_warm_history_candles (figi, candle_start_dt, open_price, close_price, max_price, min_price, volume, source_filename, insertdate, guidfromfile, source,is_close_candle) values (@figi, @candle_start_dt, @open_price, @close_price, @max_price, @min_price, @volume, @source_filename, @insertdate, @guidfromfile, @source,@is_close_candle)";
+                        using var command = new NpgsqlCommand(dBRequest, connection);
+                        command.Parameters.AddWithValue("figi", candleObjWithFigi.Figi);
+                        command.Parameters.AddWithValue("candle_start_dt", candle.Time.ToDateTime());
+                        command.Parameters.AddWithValue("open_price", float.Parse(candle.Open.Units.ToString() + "," + candle.Open.Nano.ToString()));
+                        command.Parameters.AddWithValue("close_price", float.Parse(candle.Close.Units.ToString() + "," + candle.Close.Nano.ToString()));
+                        command.Parameters.AddWithValue("max_price", float.Parse(candle.High.Units.ToString() + "," + candle.High.Nano.ToString()));
+                        command.Parameters.AddWithValue("min_price", float.Parse(candle.Low.Units.ToString() + "," + candle.Low.Nano.ToString()));
+                        command.Parameters.AddWithValue("volume", candle.Volume);
+                        command.Parameters.AddWithValue("source_filename", "no_file");
+                        command.Parameters.AddWithValue("insertdate", insertDate.ToUniversalTime());
+                        command.Parameters.AddWithValue("guidfromfile", candleObjWithFigi.Uid);
+                        command.Parameters.AddWithValue("source", "GetWarmCandlesApp");
+                        command.Parameters.AddWithValue("is_close_candle", candle.IsComplete);
+                        command.Prepare();
+                        command.ExecuteNonQuery();
+                        localWritedCounter++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.ToString());
+                    }
                 }
             }
             else
@@ -178,7 +172,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 allOK = false;
             }
             if (allOK)
-            { 
+            {
                 try
                 {
                     using var command = new NpgsqlCommand(dBRequest, connection);
@@ -194,7 +188,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 }
             }
             else
-            { 
+            {
                 return result;
             }
 
@@ -282,7 +276,7 @@ delete from tmp_warm_history_candles where 1=1;";
 
                     Console.WriteLine(ex.Message);
                     allOK = false;
-                    result= false;
+                    result = false;
 
                 }
             }

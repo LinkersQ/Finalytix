@@ -1,12 +1,7 @@
-﻿using FinInvestLibrary.Objects;
-using FinInvestLibrary.Objects.Logging;
-using FinInvestLibrary.Functions.LocalOperations;
-using Google.Protobuf.WellKnownTypes;
-using Npgsql;
-using Tinkoff.InvestApi;
-using Tinkoff.InvestApi.V1;
+﻿using FinInvestLibrary.Functions.LocalOperations;
+using FinInvestLibrary.Objects;
 using log4net;
-using log4net.Config;
+using Tinkoff.InvestApi.V1;
 
 namespace GetWarmCandles
 {
@@ -19,7 +14,7 @@ namespace GetWarmCandles
             log.Info("---Start---");
             try
             {
-                
+
                 //string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
                 //string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
                 int requestTimeOutInterval = 200; //для ограничений кол-ва запросов к тинькофф апи
@@ -31,7 +26,7 @@ namespace GetWarmCandles
                 string tokenPath = appPath + "\\token.txt";
                 string token = File.ReadAllText(tokenPath);
 
-              
+
                 log.Info("Запущен процесс получения свежих данных о свечах от TinkoffAPI");
 
                 FinBaseConnector dBConnector = new FinBaseConnector();//Инициируем коннектор к базе данных FinBase. Используется для всех операций с БД
@@ -49,42 +44,42 @@ namespace GetWarmCandles
                 #endregion
                 #region Получаем свечи от тинькофф и записываем в таблицу
                 //Запускаем процесс получения данных по свечам от TinkoffAPI
-                
+
                 log.Info("Запрашиваю TinkoffAPI и получаю свечи");
                 var responses = tinkoffInvestApiFunctions.GetCandlesResponseObjects(requestTimeOutInterval, token, requests);
-                
+
                 log.Info("Получено " + responses.Count + " свечей по " + responses.Sum(c => c.CandlesResponse.Candles.Count) + " инструментам");
 
                 //Сохраняем полученные свечи в таблицу tmp_warm_history_candles
-                
+
                 log.Info("Приступаю к записи полученных данных в таблицу tmp_warm_history_candles");
                 PutCandlesIntoDB(connectionString, currentDateTime, dBConnector, responses);
-                
+
                 log.Info("Полученные свечи успешно записаны");
 
                 //Перекладываем свечи в рабочую таблицу, обновляем ранее полученные но не закрытые свечи, очищаем временную таблицу.
-                
+
                 log.Info("Перемещаю недостающие свечи");
                 var result_tmp2Warm = dBConnector.fromTmpWarm2PromWarm(connectionString);
-                
+
                 log.Info("Перемещено " + result_tmp2Warm + " свечей");
 
                 log.Info("Обновляю ранее незакрытые свечи");
                 var result_UpdNotClosedCandles = dBConnector.UpdateNotClosedCandles(connectionString);
-               
+
                 log.Info("Обновлено " + result_UpdNotClosedCandles + " свечей");
 
-              
+
                 log.Info("Очищаем временную таблицу");
                 var result_CleanUpTable = dBConnector.CleanUpTable(connectionString);
                 if (result_CleanUpTable)
                 {
-                   
+
                     log.Info("Таблица успешно очищена " + result_CleanUpTable);
                 }
                 else
                 {
-                   
+
                     log.Info("Не удалось очистить таблицу");
                 }
 
@@ -92,7 +87,7 @@ namespace GetWarmCandles
                 #endregion
 
                 var finishTime = DateTime.UtcNow;
-                
+
                 log.Info("Затрачено времени: " + (finishTime - currentDateTime).TotalSeconds / 60 + " минут");
             }
             catch (Exception ex)
@@ -104,7 +99,7 @@ namespace GetWarmCandles
 
         private static void PutCandlesIntoDB(string connectionString, DateTime currentDateTime, FinBaseConnector dBConnector, List<CandleResponceWithFigiUID> responses)
         {
-            
+
             foreach (var response in responses)
             {
                 Console.WriteLine("Отправляю на запись figi {0}. Нужно записать {1} свечей...", response.Figi, response.CandlesResponse.Candles.Count);
@@ -117,7 +112,7 @@ namespace GetWarmCandles
                     log.Error("При записи figi " + response.Figi + " возникли ошибки.");
                 }
             }
-            
+
         }
 
         private static List<GetCandlesRequest> GetRequests(DateTime currentDateTime, int searchPeriod, TinkoffInvestApiFunctions tinkoffInvestApiFunctions, List<ShareObject> shares)
@@ -130,9 +125,9 @@ namespace GetWarmCandles
             List<GetCandlesRequest> requests = new List<GetCandlesRequest>();
             try
             {
-                 requests = tinkoffInvestApiFunctions.GetCandlesRequestObjects(shares, currentDateTime, searchPeriod);
-                 Console.WriteLine("По " + shares.Count + " инструментам сформировано " + requests.Count + " запросов");
-                
+                requests = tinkoffInvestApiFunctions.GetCandlesRequestObjects(shares, currentDateTime, searchPeriod);
+                Console.WriteLine("По " + shares.Count + " инструментам сформировано " + requests.Count + " запросов");
+
             }
             catch (Exception ex)
             {

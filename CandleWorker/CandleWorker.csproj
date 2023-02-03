@@ -16,6 +16,24 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Commands\15_minutes_interval_creator.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Commands\1_day_interval_creator.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Commands\1_hour_interval_creator.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Commands\1_month_interval_creator.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Commands\1_week_interval_creator.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Commands\SyncCommand.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="connectionString.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
