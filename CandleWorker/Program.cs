@@ -13,7 +13,7 @@ namespace CandleWorker
             int exitCode = 9999;
 
             log4net.Config.XmlConfigurator.Configure();
-            log.Info("---Start---");
+            log.Info(@"/---------Start---------\");
             log.Info("Зачитываю конфигурацию");
 
             string file2ExecuteName = string.Empty;
@@ -33,12 +33,11 @@ namespace CandleWorker
                     bool commExecuteResult = pgExecuter.ExecuteNonQuery(command);
                     if (commExecuteResult)
                     {
-                        log.Info("Команда успешно выполнена");
+                     
                         exitCode = 0;
                     }
                     else
                     {
-                        log.Error("Не удалось выполнить команду");
                         exitCode = 1;
                     }
                 }
@@ -52,7 +51,7 @@ namespace CandleWorker
                 log.Error("Не определен файл с командой. Для определения команды добавь к программе аргумент с путем к файлу с командой");
                 exitCode = 1;
             }
-           
+            log.Info(@"\---------END---------/");
             return exitCode;
 
         }
@@ -75,7 +74,7 @@ namespace CandleWorker
                 string tokenPath = appPath + "\\token.txt";
                 command = File.ReadAllText(file2ExecuteName);
                 log.Info("Строка подключения: " + connectionString);
-                log.Info("Использую файл с командой: " + file2ExecuteName);
+                log.Info("Использую файл с инструкцией: " + file2ExecuteName);
                 result = true;
             }
             catch (Exception ex)

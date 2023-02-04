@@ -38,16 +38,18 @@ namespace FinInvestLibrary.Functions.LocalOperations
             DateTime executeStartDT = DateTime.Now.ToUniversalTime();
             try
             {
+                log.Info("Выполняю полученную инструкцию SQL");
                 using var command = new NpgsqlCommand(SQLCommand, connection);
                 command.ExecuteNonQuery();
                 result = true;
             }
             catch (Exception ex)
             {
-                log.Error("Не удалось выполнить команду");
+                log.Error("Не удалось выполнить инструкцию");
                 log.Error(ex.ToString());
             }
             DateTime executeFinishDT = DateTime.Now.ToUniversalTime();
+            log.Info("Инструкция успешно выполнена");
             log.Info("Время выполнения: " + (executeFinishDT - executeStartDT).TotalSeconds + " секунд.");
 
             return result;
