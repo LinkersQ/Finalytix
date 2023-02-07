@@ -26,6 +26,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
             log.Info("Подключаюсь к БД...");
             try
             {
+                
                 connection.Open();
                 log.Info("Подключение устрановлено");
             }
@@ -40,6 +41,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
             {
                 log.Info("Выполняю полученную инструкцию SQL");
                 using var command = new NpgsqlCommand(SQLCommand, connection);
+                command.CommandTimeout = 600;
                 command.ExecuteNonQuery();
                 result = true;
             }
