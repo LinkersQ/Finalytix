@@ -33,7 +33,7 @@ namespace CandleWorker
                     bool commExecuteResult = pgExecuter.ExecuteNonQuery(command);
                     if (commExecuteResult)
                     {
-                     
+
                         exitCode = 0;
                     }
                     else

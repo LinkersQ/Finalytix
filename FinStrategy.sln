@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ParseCandles", "ParseCandle
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GetWarmCandles", "GetWarmCandles\GetWarmCandles.csproj", "{561CDD85-6EC4-4ADA-A681-4E798999DF4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CandleWorker", "CandleWorker\CandleWorker.csproj", "{ACD59BFE-0245-4540-8C6D-F3E12FA92356}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CandleWorker", "CandleWorker\CandleWorker.csproj", "{ACD59BFE-0245-4540-8C6D-F3E12FA92356}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCSStreamReader", "TCSStreamReader\TCSStreamReader.csproj", "{9F274296-6C37-4683-B1B2-306CD54169D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{ACD59BFE-0245-4540-8C6D-F3E12FA92356}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ACD59BFE-0245-4540-8C6D-F3E12FA92356}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ACD59BFE-0245-4540-8C6D-F3E12FA92356}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F274296-6C37-4683-B1B2-306CD54169D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F274296-6C37-4683-B1B2-306CD54169D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F274296-6C37-4683-B1B2-306CD54169D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F274296-6C37-4683-B1B2-306CD54169D9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

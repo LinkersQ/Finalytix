@@ -26,7 +26,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
             log.Info("Подключаюсь к БД...");
             try
             {
-                
+
                 connection.Open();
                 log.Info("Подключение устрановлено");
             }
