@@ -15,7 +15,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CandleWorker", "CandleWorke
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TCSStreamReader", "TCSStreamReader\TCSStreamReader.csproj", "{9F274296-6C37-4683-B1B2-306CD54169D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MAStrategyApp", "MAStrategyApp\MAStrategyApp.csproj", "{4CEC0B86-221F-4B17-9462-7D18C8876869}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MAStrategyApp", "MAStrategyApp\MAStrategyApp.csproj", "{4CEC0B86-221F-4B17-9462-7D18C8876869}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinGrowPointPublisherAPP", "FinGrowPointPublisherAPP\FinGrowPointPublisherAPP.csproj", "{BB71B264-A0B9-422B-8704-E90B6F439310}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telegram.Bot.Extensions.Polling", "Telegram.Bot.Extensions.Polling\Telegram.Bot.Extensions.Polling.csproj", "{8AF38A35-8685-4556-887B-0B1F7E1F3C21}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,6 +70,18 @@ Global
 		{4CEC0B86-221F-4B17-9462-7D18C8876869}.Development|Any CPU.Build.0 = Debug|Any CPU
 		{4CEC0B86-221F-4B17-9462-7D18C8876869}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4CEC0B86-221F-4B17-9462-7D18C8876869}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB71B264-A0B9-422B-8704-E90B6F439310}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB71B264-A0B9-422B-8704-E90B6F439310}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB71B264-A0B9-422B-8704-E90B6F439310}.Development|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB71B264-A0B9-422B-8704-E90B6F439310}.Development|Any CPU.Build.0 = Debug|Any CPU
+		{BB71B264-A0B9-422B-8704-E90B6F439310}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB71B264-A0B9-422B-8704-E90B6F439310}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AF38A35-8685-4556-887B-0B1F7E1F3C21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AF38A35-8685-4556-887B-0B1F7E1F3C21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AF38A35-8685-4556-887B-0B1F7E1F3C21}.Development|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AF38A35-8685-4556-887B-0B1F7E1F3C21}.Development|Any CPU.Build.0 = Debug|Any CPU
+		{8AF38A35-8685-4556-887B-0B1F7E1F3C21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AF38A35-8685-4556-887B-0B1F7E1F3C21}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

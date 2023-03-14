@@ -13,12 +13,24 @@ namespace MAStrategyApp
 {
     internal class Program
     {
+
+        static string FAST_INTERVAL = string.Empty;
+        static string SLOW_INTERVAL = string.Empty;
+        static string STRATEGY_NAME = string.Empty;
+
         public static readonly ILog log = LogManager.GetLogger(typeof(Program));
         static int Main(string[] args)
         {
 
             string runType = args[0];
-            string strategyName = "MA_12/26";// args[1];
+            string strategyName = args[1]; //"MA_12/26";
+            string fastInterval = strategyName.Split('_')[1].Split('/')[0];
+            string slowInterval = strategyName.Split('_')[1].Split('/')[1];
+
+            STRATEGY_NAME = strategyName;
+            FAST_INTERVAL = fastInterval;
+            SLOW_INTERVAL = slowInterval;
+
             string scaleName = "1_day_scale";//args[2];
             int exitCode = 9999;
             log4net.Config.XmlConfigurator.Configure();
@@ -378,7 +390,7 @@ namespace MAStrategyApp
             string getCandlesForAnalisys = string.Empty;
             for (int i = 0; i < shares.Count; i++)
             {
-                getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_12, interval_26, open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + shares[i].figi + "' and uhcas.id > " + shares[i].LastCandleIdForStrategy + " order by uhcas.candle_start_dt_utc";
+                getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + shares[i].figi + "' and uhcas.id > " + shares[i].LastCandleIdForStrategy + " order by uhcas.candle_start_dt_utc";
 
                 List<string> shareCandlesFoAnalysisStrings = new PgExecuter(connectionString, log).ExecuteReader(getCandlesForAnalisys);
 
@@ -392,7 +404,7 @@ namespace MAStrategyApp
 
             string getCandlesForAnalisys = string.Empty;
             
-            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_12, interval_26, open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.id >= " + tradeObject.openCandleId + " order by uhcas.candle_start_dt_utc";
+            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.id >= " + tradeObject.openCandleId + " order by uhcas.candle_start_dt_utc";
 
             List<string> candlesStrings = new PgExecuter(connectionString, log).ExecuteReader(getCandlesForAnalisys);
 
