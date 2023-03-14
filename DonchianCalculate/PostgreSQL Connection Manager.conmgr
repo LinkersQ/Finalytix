@@ -1,0 +1,14 @@
+﻿<?xml version="1.0"?>
+<DTS:ConnectionManager xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:ObjectName="PostgreSQL Connection Manager"
+  DTS:DTSID="{3578661E-FA8E-4FEF-A328-E1AEC309FCAA}"
+  DTS:CreationName="PostgreSQL (KingswaySoft)">
+  <DTS:ObjectData>
+    <ConnectionManager
+      ConnectionString="Host=localhost;Database=FinBase;Port=5432;Username=postgres;ApplicationName=&quot;KingswaySoft SSIS Productivity Pack&quot;;AutoPrepareMinUsages=5;CheckCertificateRevocation=False;ConnectionIdleLifetime=300;ConnectionPruningInterval=10;ConvertInfinityDateTime=False;Enlist=True;IncludeRealm=False;IntegratedSecurity=False;KeepAlive=0;KerberosServiceName=postgres;LoadTableComposites=False;MaxAutoPrepare=0;MaxPoolSize=0;MinPoolSize=100;NoResetOnClose=False;Pooling=True;ReadBufferSize=8192;SocketReceiveBufferSize=8192;SocketSendBufferSize=8192;SslMode=Prefer;TcpKeepAlive=False;TcpKeepAliveInterval=0;TcpKeepAliveTime=0;Timeout=600;TrustServerCertificate=False;UsePerfCounters=False;WriteBufferSize=8192;UseSshTunneling=False;SshTunnelHostName=;SshTunnelPort=22;SshTunnelUsername=;SshTunnelPathToKeyFile="
+      ConnectByProxy="False">
+      <Password
+        Sensitive="1" xmlns="www.microsoft.com/SqlServer/Dts">AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAyy0HyD3HDE2DshVy5NAyjAAAAAACAAAAAAAQZgAAAAEAACAAAACfc+zP9Vi3nw0WBqcvhzGuvEm+Pen/ej9alB2iEnA5vQAAAAAOgAAAAAIAACAAAAD269J1P2cXbKH+vkKDPRycu6NF2LRy4Q61X4NRzPSmMmAAAACnw0OMGRDsJOpz5rO9geM2Q6mrLSq76Bm9Q904oVxFIZcAAl+O63KYvjmScICI7tmYH3juaSevQ1Er2iVpFi2PTzGucW2z/YZ1gv+c0hpyKt3oghuRggFpNdoGcNnjqsxAAAAAVsoLR/DibTDBpJt6RkZogCjSNlB2YUAddpdF/mofg2oGKxPIYF3//1JK9G1Aln1DBVLNzQqrDc7jBcwvGuI+Ig==</Password>
+    </ConnectionManager>
+  </DTS:ObjectData>
+</DTS:ConnectionManager>

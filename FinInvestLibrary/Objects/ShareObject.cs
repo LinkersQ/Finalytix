@@ -1,4 +1,6 @@
-﻿namespace FinInvestLibrary.Objects
+﻿using FinInvestLibrary.Objects.Trade;
+
+namespace FinInvestLibrary.Objects
 {
     public class ShareObject
     {
@@ -42,6 +44,10 @@
         private DateTimeOffset? _first_1min_candle_date;
         private DateTimeOffset? _first_1day_candle_date;
 
+        private int _lastCandleIdForStrategy;
+        private List<CandleForSMAStratAnalysis> _candleForSMAStratAnalysisList;
+        private List<TradeObject> _tradeObjects;    
+
         public string figi { get { return _figi; } set { _figi = value; } }
         public string ticker { get { return _ticker; } set { _ticker = value; } }
         public string class_code { get { return _class_code; } set { _class_code = value; } }
@@ -81,5 +87,11 @@
         public bool blocked_tca_flag { get { return (bool)_blocked_tca_flag; } set { _blocked_tca_flag = value; } }
         public DateTimeOffset first_1min_candle_date { get { return (DateTimeOffset)_first_1min_candle_date; } set { _first_1min_candle_date = value; } }
         public DateTimeOffset first_1day_candle_date { get { return (DateTimeOffset)_first_1day_candle_date; } set { _first_1day_candle_date = value; } }
+
+        public int LastCandleIdForStrategy { get { return _lastCandleIdForStrategy; } set { _lastCandleIdForStrategy = value; } }
+
+        public List<CandleForSMAStratAnalysis> candleForSMAStratAnalysisList { get { return _candleForSMAStratAnalysisList; } set { _candleForSMAStratAnalysisList = value;} }
+        
+        public List<TradeObject> tradeObjects { get { return _tradeObjects; } set { _tradeObjects = value; } }
     }
 }

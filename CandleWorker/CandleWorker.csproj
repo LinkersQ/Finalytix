@@ -19,6 +19,9 @@
     <None Update="Commands\Analytics\CandleTypeCalculate.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Commands\Analytics\SimpleCalc.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Commands\Analytics\Strategies\CalculateIntervals.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

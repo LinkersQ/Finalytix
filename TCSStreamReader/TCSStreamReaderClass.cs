@@ -26,7 +26,7 @@ namespace TCSStreamReader
             //var a = TakeSubscribeForMarketDataByFigi(stream);
             //var b = GetMarketDataByFigi(stream);
 
-            var stream_2 = client.MarketDataStream.
+            //var stream_2 = client.MarketDataStream.
             var c = TakeSubscribeToTrades(stream);
 
             var instr = new CandleInstrument[1];
@@ -52,8 +52,8 @@ namespace TCSStreamReader
             req.SubscriptionAction= SubscriptionAction.Subscribe;
             req.Instruments.AddRange(instrs);
             Console.WriteLine(req.Instruments.Count);
-                
-            await stream.RequestStream.WriteAsync()
+
+           // await stream.RequestStream.WriteAsync();
         }
 
 

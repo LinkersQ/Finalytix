@@ -1,0 +1,1 @@
+﻿select figi from public.shares;
