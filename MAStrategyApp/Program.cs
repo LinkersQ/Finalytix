@@ -22,8 +22,8 @@ namespace MAStrategyApp
         static int Main(string[] args)
         {
 
-            string runType = "trade_close_point";//args[0];
-            string strategyName = "MA_12/26"; //args[1]; //"MA_12/26";
+            string runType = args[0];//"trade_close_point";//args[0];
+            string strategyName = args[1]; //args[1]; //"MA_12/26";
             string fastInterval = strategyName.Split('_')[1].Split('/')[0];
             string slowInterval = strategyName.Split('_')[1].Split('/')[1];
 
