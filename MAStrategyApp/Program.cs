@@ -22,8 +22,8 @@ namespace MAStrategyApp
         static int Main(string[] args)
         {
 
-            string runType = args[0];
-            string strategyName = args[1]; //"MA_12/26";
+            string runType = "trade_close_point";//args[0];
+            string strategyName = "MA_12/26"; //args[1]; //"MA_12/26";
             string fastInterval = strategyName.Split('_')[1].Split('/')[0];
             string slowInterval = strategyName.Split('_')[1].Split('/')[1];
 
@@ -145,7 +145,7 @@ namespace MAStrategyApp
                                 trade.tradeProfitByClosePerc = (trade.tradeProfitByClose / trade.openTradePrice);
                                 trade.tradeProfitByMax = trade.openTradePrice - trade.maxTradePrice;
                                 trade.tradeProfitByMaxPerc = trade.tradeProfitByMax / trade.openTradePrice;
-                                trade.tradeProfitByMin = trade.minTradePrice - trade.openTradePrice;
+                                trade.tradeProfitByMin =  trade.openTradePrice - trade.minTradePrice;
                                 trade.tradeProfitByMinPerc = trade.tradeProfitByMin / trade.openTradePrice;
                                 trade.tradeDuration = trade.closeCandleDt - trade.openCandleDt;
                                 log.Info("Сделка " + trade.tradeType + " ID:" + trade.tradeId + " закрыта");
@@ -197,7 +197,7 @@ namespace MAStrategyApp
         private static List<TradeObject> GetActiveTrades(string connectionString)
         {
             log.Info("Получаю список активных сделок");
-            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice from trades where closecandleid is null";
+            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt from trades where closecandleid is null";
             List<string> tradesStrings = new PgExecuter(connectionString, log).ExecuteReader(sqlCommand);
             List<TradeObject> tradeObjectList = new List<TradeObject>();
             foreach (var str in tradesStrings)
@@ -215,6 +215,10 @@ namespace MAStrategyApp
                 tradeObject.openTradePrice = float.Parse(partsOfRow[7]);
                 tradeObject.maxTradePrice = float.Parse(partsOfRow[8]);
                 tradeObject.minTradePrice = float.Parse(partsOfRow[9]);
+                tradeObject.maxtradepricecandleid = Convert.ToInt32(partsOfRow[10]);
+                tradeObject.maxtradepricecandledt = Convert.ToDateTime(partsOfRow[11]);
+                tradeObject.mintradepricecandleid = Convert.ToInt32(partsOfRow[12]);
+                tradeObject.mintradepricecandledt = Convert.ToDateTime(partsOfRow[13]);
 
                 tradeObjectList.Add(tradeObject);
             }
@@ -249,7 +253,7 @@ namespace MAStrategyApp
                         if (currValue > 0)
                         {
                             TradeObject tradeObject = new TradeObject();
-                            tradeObject.tradeId = Guid.NewGuid().ToString();
+                            tradeObject.tradeId = Guid.NewGuid().ToString().Replace("-","");
                             tradeObject.tradeType = "LONG";
                             tradeObject.stratName = strategyName;
                             tradeObject.openCandleId = share.candleForSMAStratAnalysisList[i].candleId;
@@ -275,7 +279,7 @@ namespace MAStrategyApp
                         if (currValue < 0)
                         {
                             TradeObject tradeObject = new TradeObject();
-                            tradeObject.tradeId = Guid.NewGuid().ToString();
+                            tradeObject.tradeId = Guid.NewGuid().ToString().Replace("-", "");
                             tradeObject.tradeType = "SHORT";
                             tradeObject.stratName = strategyName;
                             tradeObject.openCandleId = share.candleForSMAStratAnalysisList[i].candleId;
@@ -404,7 +408,7 @@ namespace MAStrategyApp
 
             string getCandlesForAnalisys = string.Empty;
             
-            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.id >= " + tradeObject.openCandleId + " order by uhcas.candle_start_dt_utc";
+            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.id >= " + tradeObject.openCandleId + " order by uhcas.candle_start_dt_utc";
 
             List<string> candlesStrings = new PgExecuter(connectionString, log).ExecuteReader(getCandlesForAnalisys);
 

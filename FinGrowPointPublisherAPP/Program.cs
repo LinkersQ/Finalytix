@@ -19,9 +19,6 @@ namespace FinGrowPointPublisherAPP
         static string OPEN_TRADE_TEMPLATE = string.Empty;
         static string CLOSE_TRADE_TEMPLATE = string.Empty;
 
-        
-
-
 
         static void Main(string[] args)
         {
@@ -34,6 +31,8 @@ namespace FinGrowPointPublisherAPP
                 ITelegramBotClient bot = new TelegramBotClient(TG_BOT_TOKEN);
 
                 log.Info("Запущен бот " + bot.GetMeAsync().Result.FirstName);
+              
+
 
                 var cts = new CancellationTokenSource();
                 var cancellationToken = cts.Token;
@@ -50,11 +49,18 @@ namespace FinGrowPointPublisherAPP
                 Console.ReadLine();
             }
             else
-            { 
-            
+            {
+                log.Error("В процессе конфигурирования приложения возникла ошибка. Приложение завершено.");
             }
         }
 
+        public static async void SendTradeMessage(ITelegramBotClient botClient, string template2Send, long channel_id)
+        {
+            Message mes = new Message();
+            mes.Chat = new Chat { Id = channel_id, };
+            var res = await botClient.SendTextMessageAsync(mes.Chat, template2Send);
+            Console.WriteLine(res.MessageId + " - " + res.Text);
+        }
 
         public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
