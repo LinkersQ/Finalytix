@@ -23,13 +23,14 @@ namespace MAStrategyApp
         {
             log4net.Config.XmlConfigurator.Configure();
             log.Info(@"/---------Start---------\");
-            log.Info("Зачитываю конфигурацию");
+            
+            log.Info("Конфигурирую приложение");
             string runType, strategyName, scaleName, connectionString;
             int exitCode = 9999;
             try
             {
-                runType = args[0];//"trade_close_point";//args[0];
-                strategyName = args[1]; //args[1]; //"MA_12/26";
+                runType = "trade_close_point";//"trade_close_point";//args[0];
+                strategyName = "MA_12/26"; //args[1]; //"MA_12/26";
                 scaleName = "1_day_scale";//args[2];
 
                 string appPath = Environment.CurrentDirectory;
@@ -62,29 +63,36 @@ namespace MAStrategyApp
             log.Info("Стратегия: " + STRATEGY_NAME);
             log.Info("Масштаб: " + scaleName);
             log.Info("Строка подключения: " + connectionString);
-
+            log.Info("Конфигурирование завершено");
 
             //Получаю список активов, по которым требуется рассчитывать и контролировать сделки
             var shares = new FinBaseConnector().GetSharesFromDB(connectionString).Where(w => w.country_of_risk.Equals("RU")).ToList(); 
 
             //Вызов стратегии
+
+            //Запуск в режиме поиска точек входа
             if (runType.Equals("trade_open_point"))
             {
                 try
                 {
+                    log.Info("Запущен режим поиска новых сделок по стратегии " + STRATEGY_NAME);
                     MA_Strategy_OpenTrade(strategyName, scaleName, connectionString, shares);
+                    log.Info("Завершен процесс поиска новых сделок по стратегии " + STRATEGY_NAME);
                 }
                 catch (Exception ex)
                 {
-                    log.Error("Не удалось завершить процесс поиска входа в сделку");
+                    log.Error("Не удалось завершить процесс поиска входа в сделку по стратегии " + STRATEGY_NAME);
                     log.Error(ex);
                 }
             }
+            //Запуск в режиме мониторинга активных сделок
             else if (runType.Equals("trade_close_point"))
             {
                 try
-                { 
+                {
+                    log.Info("Запущен режим мониторинга активных сделок по стратегии " + STRATEGY_NAME);
                     MA_Strategy_TradeWorker(connectionString, scaleName);
+                    
                 }
                 catch (Exception ex)
                 {
@@ -94,15 +102,138 @@ namespace MAStrategyApp
             }
 
 
-            // 1) добавить сохранения максимального candle id - Done
-            // 2) разраюотать сценарий мониторинга сделки
-            // 3) разработать сценарий закрытия сделки
-
-
-
+            log.Info(@"\---------Finish--------/");
             return exitCode;
         }
 
+        /// <summary>
+        /// Модуль открытия новых сделок
+        /// </summary>
+        /// <param name="strategyName"></param>
+        /// <param name="scaleName"></param>
+        /// <param name="connectionString"></param>
+        /// <param name="shares"></param>
+        private static void MA_Strategy_OpenTrade(string strategyName, string scaleName, string connectionString, List<ShareObject> shares)
+        {
+            log.Info("Получаю максимальный CandleId по каждому активу (cfg_last_candles_for_strategy)");
+            GetFigiLastCandleId(strategyName, scaleName, connectionString, shares);
+            log.Info("Получаю таргеты для сделок");
+            List<TradeTargetObject> tradeTargetObjects = GetTargetsForTrades(connectionString);
+            log.Info("Получаю свечи для анализа согласно стратегии" + STRATEGY_NAME);
+            GetCandlesSMARows(scaleName, connectionString, shares); //в коллекцию shares (в каждый элемент) добавляем колелкцию свечей для проведения анализа по стратегии MA
+
+            //Анализируем на предмет пересечения быстрой и медленной линии
+            log.Info("Запуск стратегии " + STRATEGY_NAME);
+            foreach (var share in shares)
+            {
+                log.Info("Работаю над активом " + share.name + "(" + share.ticker + ", " + share.figi + ")");
+                List<TradeObject> tradeObjectList = new List<TradeObject>();
+                //Проверяем каждую свечу на предмет пробоя короткой линией длинной линии. При этом учитываем значение предыдущей свечи. Если короткая
+                for (int i = 1; i < share.candleForSMAStratAnalysisList.Count; i++)
+                {
+
+                    var prevValue = share.candleForSMAStratAnalysisList[i - 1].fastInterval - share.candleForSMAStratAnalysisList[i - 1].slowInterval;
+                    var currValue = share.candleForSMAStratAnalysisList[i].fastInterval - share.candleForSMAStratAnalysisList[i].slowInterval;
+
+                    //Поиск точки входа в сделку LONG
+                    if (prevValue < 0)
+                    {
+                        if (currValue > 0)
+                        {
+                            TradeObject tradeObject = new TradeObject();
+                            tradeObject.tradeType = "LONG";
+                            tradeObject.stratName = strategyName;
+                            tradeObject.openCandleId = share.candleForSMAStratAnalysisList[i].candleId;
+                            tradeObject.openCandleDt = share.candleForSMAStratAnalysisList[i].candleOpenDt;
+                            tradeObject.figi = share.figi;
+                            tradeObject.tradeStartDt = DateTime.UtcNow;
+                            tradeObject.openTradePrice = share.candleForSMAStratAnalysisList[i].closePrice;
+                            tradeObject.maxTradePrice = share.candleForSMAStratAnalysisList[i].maxPrice;
+                            tradeObject.minTradePrice = share.candleForSMAStratAnalysisList[i].minPrice;
+
+                            tradeObject.maxtradepricecandleid = tradeObject.openCandleId;
+                            tradeObject.maxtradepricecandledt = tradeObject.openCandleDt;
+                            tradeObject.mintradepricecandleid = tradeObject.openCandleId;
+                            tradeObject.mintradepricecandledt = tradeObject.openCandleDt;
+                            tradeObject.target1Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).target_1;
+                            tradeObject.target2Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).target_2;
+                            tradeObject.stopLoss1Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).stop_loss;
+                            tradeObject.stopLoss2Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).stop_loss;
+
+
+                            tradeObjectList.Add(tradeObject);
+                            log.Info("LONG: " + share.ticker + ", CandleID: " + tradeObject.openCandleId + ", Date: " + tradeObject.openCandleDt);
+                        }
+                    }
+                    //Поиск точки входа в сделку SHORT
+                    if (prevValue >= 0)
+                    {
+                        if (currValue < 0)
+                        {
+                            TradeObject tradeObject = new TradeObject();
+                            tradeObject.tradeType = "SHORT";
+                            tradeObject.stratName = strategyName;
+                            tradeObject.openCandleId = share.candleForSMAStratAnalysisList[i].candleId;
+                            tradeObject.openCandleDt = share.candleForSMAStratAnalysisList[i].candleOpenDt;
+                            tradeObject.figi = share.figi;
+                            tradeObject.tradeStartDt = DateTime.UtcNow;
+                            tradeObject.openTradePrice = share.candleForSMAStratAnalysisList[i].closePrice;
+                            tradeObject.maxTradePrice = share.candleForSMAStratAnalysisList[i].maxPrice;
+                            tradeObject.minTradePrice = share.candleForSMAStratAnalysisList[i].minPrice;
+
+                            tradeObject.maxtradepricecandleid = tradeObject.openCandleId;
+                            tradeObject.maxtradepricecandledt = tradeObject.openCandleDt;
+                            tradeObject.mintradepricecandleid = tradeObject.openCandleId;
+                            tradeObject.mintradepricecandledt = tradeObject.openCandleDt;
+                            tradeObject.target1Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).target_1;
+                            tradeObject.target2Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).target_2;
+                            tradeObject.stopLoss1Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).stop_loss;
+                            tradeObject.stopLoss2Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).stop_loss;
+
+                            tradeObjectList.Add(tradeObject);
+                            log.Info("SHORT: " + share.ticker + ", CandleID: " + tradeObject.openCandleId + ", Date: " + tradeObject.openCandleDt);
+                        }
+                    }
+                }
+                share.tradeObjects = tradeObjectList;
+            }
+
+            //Сохраняем найденные сделки в таблицу
+
+
+            log.Info("Сохраняю найденные сделки по стратегии: " + strategyName);
+            int tradesCount = 0;
+            for (int i = 0; i < shares.Count(); i++)
+            {
+                log.Info("Сохраняю сделки по активу: " + shares[i].name + "(" + shares[i].figi + ")");
+                for (int ii = 0; ii < shares[i].tradeObjects.Count; ii++)
+                {
+
+                    string sqlCommand_analysis = PrepareSaveTradeCommand(shares, i, ii, "for_analysis");
+                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_analysis);
+
+                    tradesCount++;
+                }
+                if (shares[i].candleForSMAStratAnalysisList.Count > 0)
+                {
+                    log.Info("Сохранено " + tradesCount + " сделок");
+                    log.Info("Обновляю максимальный candle_id по активу " + shares[i].name + "(" + shares[i].figi + ")");
+
+                    string sqlCommandUpd = "update cfg_last_candles_for_strategy t set candle_id = '" + shares[i].candleForSMAStratAnalysisList.Max(m => m.candleId) + "', candle_dt = '" + shares[i].candleForSMAStratAnalysisList.Max(m => m.candleOpenDt) + "', update_dt = now() where t.figi = '" + shares[i].figi + "' and strategy_name = '" + strategyName + "' and calc_scale = '" + scaleName + "'";
+                    log.Debug("Команда для обновления максимального candle_Id и Candle_DT: ");
+                    log.Debug(sqlCommandUpd);
+
+                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommandUpd);
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Модуль мониторинга сделок
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <param name="scaleName"></param>
         private static void MA_Strategy_TradeWorker(string connectionString, string scaleName)
         {
             //получаем список активных сделок
@@ -111,114 +242,141 @@ namespace MAStrategyApp
             //Обрабатываю каждую сделку и ищу экстремумы + точки выхода
             foreach (var trade in tradeObjectList)
             {
+                //Расчитываем фактические цены закрытия сделки для публикации в канал
+                float target1Price = trade.openTradePrice + trade.openTradePrice * trade.target1Value;
+                float target2Price = trade.openTradePrice + trade.openTradePrice * trade.target2Value;
+                float stopLossPrice = trade.openTradePrice - trade.openTradePrice * trade.stopLoss1Value;
+               
+
                 DateTime lastCandle_dateTime = GetFigiLastOpenCandleDt(STRATEGY_NAME, scaleName, connectionString, trade);
 
-                DateTime executeStartDT = DateTime.UtcNow;
-                //для каждой сделки нужно найти все последующие свечи
-                //получаю список строк для конвертации их в объект candle
-                List<string> candlesStringList = GetCandlesSMARows(scaleName, connectionString, trade, lastCandle_dateTime);
-                List<CandleForSMAStratAnalysis> candleForSMAStratAnalyses = GetCandlesSMAObjects(candlesStringList);
+                    DateTime executeStartDT = DateTime.UtcNow;
+                    //для каждой сделки нужно найти все последующие свечи
+                    //получаю список строк для конвертации их в объект candle
+                    List<string> candlesStringList = GetCandlesSMARows(scaleName, connectionString, trade, lastCandle_dateTime);
+                    List<CandleForSMAStratAnalysis> candleForSMAStratAnalyses = GetCandlesSMAObjects(candlesStringList);
 
-                //каждую полученную свечу проверяем на удовлетворение условию стратегии (короткая линия пересекает длинную линию сверху вниз)
-                for(int i = 1; i < candleForSMAStratAnalyses.Count; i++)
-                {
-                    
-                    var prevValue = candleForSMAStratAnalyses[i - 1].fastInterval - candleForSMAStratAnalyses[i - 1].slowInterval;
-                    var currValue = candleForSMAStratAnalyses[i].fastInterval - candleForSMAStratAnalyses[i].slowInterval;
-
-                    //Обновляем минимальные и максимальные цены внутри сделки
-                    //Максимальная цена
-                    if (trade.maxTradePrice < candleForSMAStratAnalyses[i].maxPrice)
+                    //каждую полученную свечу проверяем на удовлетворение условию стратегии (короткая линия пересекает длинную линию сверху вниз)
+                    for (int i = 1; i < candleForSMAStratAnalyses.Count; i++)
                     {
-                        trade.maxTradePrice = candleForSMAStratAnalyses[i].maxPrice;
-                        trade.maxtradepricecandleid = candleForSMAStratAnalyses[i].candleId;
-                        trade.maxtradepricecandledt = candleForSMAStratAnalyses[i].candleOpenDt;
-                    }
 
-                    //Минимальная цена
-                    if (trade.minTradePrice > candleForSMAStratAnalyses[i].minPrice)
+                    //Расчитываются показатели для аналитической части сделки
+                    if (trade.closeCandleId < 1)
                     {
-                        trade.minTradePrice = candleForSMAStratAnalyses[i].minPrice;
-                        trade.mintradepricecandleid = candleForSMAStratAnalyses[i].candleId;
-                        trade.mintradepricecandledt = candleForSMAStratAnalyses[i].candleOpenDt;
-                    }
+                        var prevValue = candleForSMAStratAnalyses[i - 1].fastInterval - candleForSMAStratAnalyses[i - 1].slowInterval;
+                        var currValue = candleForSMAStratAnalyses[i].fastInterval - candleForSMAStratAnalyses[i].slowInterval;
 
-                    UpdateTrade(trade, connectionString);
-
-
-                    if (trade.tradeType.Equals("LONG")) //Проверяем на LONG условия короткая должна пересечь длинную сверху вниз
-                    {
-                        if (prevValue > 0)
+                        //Обновляем минимальные и максимальные цены внутри сделки
+                        //Максимальная цена
+                        if (trade.maxTradePrice < candleForSMAStratAnalyses[i].maxPrice)
                         {
-                            if (currValue <= 0)
+                            trade.maxTradePrice = candleForSMAStratAnalyses[i].maxPrice;
+                            trade.maxtradepricecandleid = candleForSMAStratAnalyses[i].candleId;
+                            trade.maxtradepricecandledt = candleForSMAStratAnalyses[i].candleOpenDt;
+                        }
+
+                        //Минимальная цена
+                        if (trade.minTradePrice > candleForSMAStratAnalyses[i].minPrice)
+                        {
+                            trade.minTradePrice = candleForSMAStratAnalyses[i].minPrice;
+                            trade.mintradepricecandleid = candleForSMAStratAnalyses[i].candleId;
+                            trade.mintradepricecandledt = candleForSMAStratAnalyses[i].candleOpenDt;
+                        }
+
+                        UpdateTrade(trade, connectionString);
+
+                        //Проверяем на LONG условия короткая должна пересечь длинную сверху вниз
+                        if (trade.tradeType.Equals("LONG"))
+                        {
+                            if (prevValue > 0)
                             {
-                                //закрываем LONG сделку
-                                trade.closeCandleId = candleForSMAStratAnalyses[i].candleId;
-                                trade.closeCandleDt = candleForSMAStratAnalyses[i].candleOpenDt;
-                                trade.tradeCloseDt = DateTime.Now;
-                                trade.closeTradePrice = candleForSMAStratAnalyses[i].closePrice;
-                                trade.tradeProfitByClose = trade.closeTradePrice - trade.openTradePrice;
-                                trade.tradeProfitByClosePerc = trade.tradeProfitByClose / trade.openTradePrice;
-                                trade.tradeProfitByMax = trade.maxTradePrice - trade.openTradePrice;
-                                trade.tradeProfitByMaxPerc = trade.tradeProfitByMax / trade.openTradePrice;
-                                trade.tradeProfitByMin = trade.minTradePrice - trade.openTradePrice;
-                                trade.tradeProfitByMinPerc = trade.tradeProfitByMin / trade.openTradePrice;
-                                trade.tradeDuration = trade.closeCandleDt - trade.openCandleDt;
+                                if (currValue <= 0)
+                                {
+                                    //закрываем LONG сделку
+                                    trade.closeCandleId = candleForSMAStratAnalyses[i].candleId;
+                                    trade.closeCandleDt = candleForSMAStratAnalyses[i].candleOpenDt;
+                                    trade.tradeCloseDt = DateTime.Now;
+                                    trade.closeTradePrice = candleForSMAStratAnalyses[i].closePrice;
 
-                                CloseTrade(trade, connectionString); //Закрываем сделку
+                                    CloseTrade(trade, connectionString); //Закрываем сделку
 
-                                log.Info("Сделка " + trade.tradeType + " ID:" + trade.tradeId + " закрыта");
-                                break;
+                                    log.Info("Сделка " + trade.tradeType + " ID:" + trade.tradeId + " закрыта");
+                                    break;
+                                }
                             }
                         }
-                    }
-                    else if (trade.tradeType.Equals("SHORT")) //Проверяем на SHORT условия - короткая должна пересечь длинную снизу вверх
-                    {
-                        if (prevValue < 0)
+                        //Проверяем на SHORT условия - короткая должна пересечь длинную снизу вверх
+                        else if (trade.tradeType.Equals("SHORT"))
                         {
-                            if (currValue >= 0)
+                            if (prevValue < 0)
                             {
-                                //закрываем SHORT сделку
-                                trade.closeCandleId = candleForSMAStratAnalyses[i].candleId;
-                                trade.closeCandleDt = candleForSMAStratAnalyses[i].candleOpenDt;
-                                trade.tradeCloseDt = DateTime.Now;
-                                trade.closeTradePrice = candleForSMAStratAnalyses[i].closePrice;
-                                trade.tradeProfitByClose = (trade.closeTradePrice - trade.openTradePrice) * -1;
-                                trade.tradeProfitByClosePerc = (trade.tradeProfitByClose / trade.openTradePrice);
-                                trade.tradeProfitByMax = trade.openTradePrice - trade.maxTradePrice;
-                                trade.tradeProfitByMaxPerc = trade.tradeProfitByMax / trade.openTradePrice;
-                                trade.tradeProfitByMin =  trade.openTradePrice - trade.minTradePrice;
-                                trade.tradeProfitByMinPerc = trade.tradeProfitByMin / trade.openTradePrice;
-                                trade.tradeDuration = trade.closeCandleDt - trade.openCandleDt;
-                                log.Info("Сделка " + trade.tradeType + " ID:" + trade.tradeId + " закрыта");
-                                CloseTrade(trade, connectionString); //Закрываем сделку
-                                break;
+                                if (currValue >= 0)
+                                {
+                                    //закрываем SHORT сделку
+                                    trade.closeCandleId = candleForSMAStratAnalyses[i].candleId;
+                                    trade.closeCandleDt = candleForSMAStratAnalyses[i].candleOpenDt;
+                                    trade.tradeCloseDt = DateTime.Now;
+                                    trade.closeTradePrice = candleForSMAStratAnalyses[i].closePrice;
+                                    log.Info("Сделка " + trade.tradeType + " ID:" + trade.tradeId + " закрыта");
+                                    CloseTrade(trade, connectionString); //Закрываем сделку
+                                    break;
+                                }
                             }
                         }
                     }
 
+                    //Проверка достижения таргетов для реальной сделки
+                    if (trade.target2CloseCause == null)
+                    {
+                        float currPrice = candleForSMAStratAnalyses[i].closePrice;
+                        if реализовать бизнес логику стратегии для публикации в канале
+                        
+                    }
 
-                    string sqlCommandUpd = "update cfg_last_candles_for_strategy t set candle_id = '" 
-                        + candleForSMAStratAnalyses[i].candleId.ToString() 
-                        + "', candle_dt = '" + candleForSMAStratAnalyses[i].candleOpenDt 
-                        + "', update_dt = now() where t.figi = '" 
-                        + candleForSMAStratAnalyses[i].figi + "' and strategy_name = '" 
-                        + STRATEGY_NAME + "' and calc_scale = '" + scaleName + "'";
-                    log.Debug("Команда для обновления максимального candle_Id и Candle_DT: ");
-                    log.Debug(sqlCommandUpd);
+                        string sqlCommandUpd = "update cfg_last_candles_for_strategy t set candle_id = '"
+                            + candleForSMAStratAnalyses[i].candleId.ToString()
+                            + "', candle_dt = '" + candleForSMAStratAnalyses[i].candleOpenDt
+                            + "', update_dt = now() where t.figi = '"
+                            + candleForSMAStratAnalyses[i].figi + "' and strategy_name = '"
+                            + STRATEGY_NAME + "' and calc_scale = '" + scaleName + "'";
+                        log.Debug("Команда для обновления максимального candle_Id и Candle_DT: ");
+                        log.Debug(sqlCommandUpd);
 
-                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommandUpd);
+                        new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommandUpd);
 
-                }
+                    }
+                    DateTime executeFinishDT = DateTime.UtcNow;
+                    log.Debug("Время выполнения: " + (executeFinishDT - executeStartDT).TotalSeconds + " секунд.");
 
-
-             
-
-                DateTime executeFinishDT = DateTime.UtcNow;
-                log.Debug("Время выполнения: " + (executeFinishDT - executeStartDT).TotalSeconds + " секунд.");
+                
 
             }
+        }
 
+        private static List<TradeTargetObject> GetTargetsForTrades(string connectionString)
+        {
+            log.Info("Получаю список таргетов по активам");
+            List<TradeTargetObject> tradeTargetObjects= new List<TradeTargetObject>();
+            string sqlCommand = "select figi, stratname, target_1, target_2, target_1_duration, target_2_duration, stop_loss_2 as stop_loss, tradetype from targets_for_trades";
+            List<string> stringTargetList = new PgExecuter(connectionString, log).ExecuteReader(sqlCommand);
+
+            foreach (var str in stringTargetList)
+            {
+                var partsOfRow = str.Split(';');
+                TradeTargetObject targetObject = new TradeTargetObject();
+                targetObject.figi = partsOfRow[0];
+                targetObject.stratname = partsOfRow[1];
+                targetObject.target_1 = float.Parse(partsOfRow[2]);
+                targetObject.target_2 = float.Parse(partsOfRow[3]);
+                targetObject.target_1_duration = float.Parse(partsOfRow[4]);
+                targetObject.target_2_duration = float.Parse(partsOfRow[5]);
+                targetObject.stop_loss = float.Parse(partsOfRow[6]);
+                targetObject.tradeType = partsOfRow[7];
+
+                tradeTargetObjects.Add(targetObject);
+            }
+            log.Info("Список таргетов получен");
+            return tradeTargetObjects;
         }
 
         private static void UpdateTrade(TradeObject trade, string connectionString)
@@ -252,7 +410,7 @@ namespace MAStrategyApp
         private static List<TradeObject> GetActiveTrades(string connectionString)
         {
             log.Info("Получаю список активных сделок");
-            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt from trades where closecandleid is null and stratname = '" + STRATEGY_NAME + "'";
+            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype, target1Value, target2Value, stopLoss1Value, stopLoss2Value from trades where (closecandleid is null or target2closedt is null) and stratname = '" + STRATEGY_NAME + "'";
             List<string> tradesStrings = new PgExecuter(connectionString, log).ExecuteReader(sqlCommand);
             List<TradeObject> tradeObjectList = new List<TradeObject>();
             foreach (var str in tradesStrings)
@@ -274,6 +432,11 @@ namespace MAStrategyApp
                 tradeObject.maxtradepricecandledt = Convert.ToDateTime(partsOfRow[11]);
                 tradeObject.mintradepricecandleid = Convert.ToInt32(partsOfRow[12]);
                 tradeObject.mintradepricecandledt = Convert.ToDateTime(partsOfRow[13]);
+                tradeObject.calculatetype= partsOfRow[14].ToString();
+                tradeObject.target1Value = float.Parse(partsOfRow[15]);
+                tradeObject.target2Value = float.Parse(partsOfRow[16]);
+                tradeObject.stopLoss1Value = float.Parse(partsOfRow[17]);
+                tradeObject.stopLoss2Value = float.Parse(partsOfRow[18]);   
 
                 tradeObjectList.Add(tradeObject);
             }
@@ -281,130 +444,36 @@ namespace MAStrategyApp
             return tradeObjectList;
         }
 
-        private static void MA_Strategy_OpenTrade(string strategyName, string scaleName, string connectionString, List<ShareObject> shares)
+
+
+        private static string PrepareSaveTradeCommand(List<ShareObject> shares, int ShareCycleNum, int TradeCycleNum, string tradeType)
         {
-            Console.WriteLine(shares.Count());
-            GetFigiLastCandleId(strategyName, scaleName, connectionString, shares);
-            GetCandlesSMARows(scaleName, connectionString, shares); //в коллекцию shares (в каждый элемент) добавляем колелкцию свечей для проведения анализа по стратегии MA
+            shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeId = Guid.NewGuid().ToString().Replace("-", "");
 
-            //Анализируем на предмет пересечения быстрой и медленной линии
-            log.Info("Запуск стратегии");
-            foreach (var share in shares)
-            {
-                List<TradeObject> tradeObjectList = new List<TradeObject>();
-                //Проверяем каждую свечу на предмет пробоя короткой линией длинной линии. При этом учитываем значение предыдущей свечи. Если короткая
-                for (int i = 1; i < share.candleForSMAStratAnalysisList.Count; i++)
-                {
+            string sqlCommand = "INSERT INTO public.trades (tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice,maxTradePrice,minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype,target1Value,target2Value,stopLoss1Value,stopLoss2Value) VALUES('"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeId + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeType + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].stratName + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].openCandleId + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].openCandleDt + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].figi + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeStartDt + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].openTradePrice.ToString().Replace(',', '.') + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].maxTradePrice.ToString().Replace(',', '.') + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].minTradePrice.ToString().Replace(',', '.') + "',"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].maxtradepricecandleid + ",'"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].maxtradepricecandledt + "',"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].mintradepricecandleid + ",'"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].mintradepricecandledt + "','" 
+                + tradeType + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].target1Value.ToString().Replace(',', '.') + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].target2Value.ToString().Replace(',', '.') + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].stopLoss1Value.ToString().Replace(',', '.') + "','"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].stopLoss2Value.ToString().Replace(',', '.') + "')";
 
-                    var prevValue = share.candleForSMAStratAnalysisList[i - 1].fastInterval - share.candleForSMAStratAnalysisList[i - 1].slowInterval;
-                    var currValue = share.candleForSMAStratAnalysisList[i].fastInterval - share.candleForSMAStratAnalysisList[i].slowInterval;
-
-
-
-                    //Поиск точки входа в сделку LONG
-                    if (prevValue < 0)
-                    {
-                        if (currValue > 0)
-                        {
-                            TradeObject tradeObject = new TradeObject();
-                            tradeObject.tradeId = Guid.NewGuid().ToString().Replace("-","");
-                            tradeObject.tradeType = "LONG";
-                            tradeObject.stratName = strategyName;
-                            tradeObject.openCandleId = share.candleForSMAStratAnalysisList[i].candleId;
-                            tradeObject.openCandleDt = share.candleForSMAStratAnalysisList[i].candleOpenDt;
-                            tradeObject.figi = share.figi;
-                            tradeObject.tradeStartDt = DateTime.UtcNow;
-                            tradeObject.openTradePrice = share.candleForSMAStratAnalysisList[i].closePrice;
-                            tradeObject.maxTradePrice = share.candleForSMAStratAnalysisList[i].maxPrice;
-                            tradeObject.minTradePrice = share.candleForSMAStratAnalysisList[i].minPrice;
-
-                            tradeObject.maxtradepricecandleid = tradeObject.openCandleId;
-                            tradeObject.maxtradepricecandledt = tradeObject.openCandleDt;
-                            tradeObject.mintradepricecandleid = tradeObject.openCandleId;
-                            tradeObject.mintradepricecandledt = tradeObject.openCandleDt;
-
-                            tradeObjectList.Add(tradeObject);
-                            log.Info("LONG: " + share.ticker + ", CandleID: " + tradeObject.openCandleId + ", Date: " + tradeObject.openCandleDt);
-                        }
-                    }
-                    //Поиск точки входа в сделку SHORT
-                    if (prevValue >= 0)
-                    {
-                        if (currValue < 0)
-                        {
-                            TradeObject tradeObject = new TradeObject();
-                            tradeObject.tradeId = Guid.NewGuid().ToString().Replace("-", "");
-                            tradeObject.tradeType = "SHORT";
-                            tradeObject.stratName = strategyName;
-                            tradeObject.openCandleId = share.candleForSMAStratAnalysisList[i].candleId;
-                            tradeObject.openCandleDt = share.candleForSMAStratAnalysisList[i].candleOpenDt;
-                            tradeObject.figi = share.figi;
-                            tradeObject.tradeStartDt = DateTime.UtcNow;
-                            tradeObject.openTradePrice = share.candleForSMAStratAnalysisList[i].closePrice;
-                            tradeObject.maxTradePrice = share.candleForSMAStratAnalysisList[i].maxPrice;
-                            tradeObject.minTradePrice = share.candleForSMAStratAnalysisList[i].minPrice;
-
-                            tradeObject.maxtradepricecandleid = tradeObject.openCandleId;
-                            tradeObject.maxtradepricecandledt = tradeObject.openCandleDt;
-                            tradeObject.mintradepricecandleid = tradeObject.openCandleId;
-                            tradeObject.mintradepricecandledt = tradeObject.openCandleDt;
-
-                            tradeObjectList.Add(tradeObject);
-                            log.Info("SHORT: " + share.ticker + ", CandleID: " + tradeObject.openCandleId + ", Date: " + tradeObject.openCandleDt);
-                        }
-                    }
-                }
-                share.tradeObjects = tradeObjectList;
-            }
-
-            //Сохраняем найденные сделки в таблицу
-
-            
-            log.Info("Сохраняю найденные сделки по стратегии: " + strategyName);
-            int tradesCount = 0;
-            for (int i = 0; i < shares.Count(); i++)
-            {
-                log.Info("Сохраняю сделки по активу: " + shares[i].name + "(" + shares[i].figi + ")");
-                for (int ii = 0; ii < shares[i].tradeObjects.Count; ii++)
-                {
-                    string sqlCommand = "INSERT INTO public.trades (tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice,maxTradePrice,minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype) VALUES('" 
-                        + shares[i].tradeObjects[ii].tradeId + "','" 
-                        + shares[i].tradeObjects[ii].tradeType + "','" 
-                        + shares[i].tradeObjects[ii].stratName + "','" 
-                        + shares[i].tradeObjects[ii].openCandleId + "','" 
-                        + shares[i].tradeObjects[ii].openCandleDt + "','" 
-                        + shares[i].tradeObjects[ii].figi + "','" 
-                        + shares[i].tradeObjects[ii].tradeStartDt + "','" 
-                        + shares[i].tradeObjects[ii].openTradePrice.ToString().Replace(',', '.') + "','" 
-                        + shares[i].tradeObjects[ii].maxTradePrice.ToString().Replace(',', '.') + "','"
-                        + shares[i].tradeObjects[ii].minTradePrice.ToString().Replace(',', '.') +"'," 
-                        + shares[i].tradeObjects[ii].maxtradepricecandleid + ",'" 
-                        + shares[i].tradeObjects[ii].maxtradepricecandledt + "'," 
-                        + shares[i].tradeObjects[ii].mintradepricecandleid +",'" 
-                        + shares[i].tradeObjects[ii].mintradepricecandledt + "','for_analysis')";
-                    log.Debug("Команда для сохранения сделки: ");
-                    log.Debug(sqlCommand);
-                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
-                    tradesCount++;
-
-
-                }
-                if (shares[i].candleForSMAStratAnalysisList.Count > 0)
-                {
-                    log.Info("Сохранено " + tradesCount + " сделок");
-                    log.Info("Обновляю максимальный candle_id по активу " + shares[i].name + "(" + shares[i].figi + ")");
-
-                    string sqlCommandUpd = "update cfg_last_candles_for_strategy t set candle_id = '" + shares[i].candleForSMAStratAnalysisList.Max(m => m.candleId) + "', candle_dt = '" + shares[i].candleForSMAStratAnalysisList.Max(m => m.candleOpenDt) + "', update_dt = now() where t.figi = '" + shares[i].figi + "' and strategy_name = '" + strategyName + "' and calc_scale = '" + scaleName + "'";
-                    log.Debug("Команда для обновления максимального candle_Id и Candle_DT: ");
-                    log.Debug(sqlCommandUpd);
-
-                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommandUpd);
-                }
-
-
-
-            }
-            log.Info("Завершен процесс поиска входа в сделки");
+            log.Debug("Команда для сохранения сделки: ");
+            log.Debug(sqlCommand);
+            return sqlCommand;
         }
 
         private static void GetFigiLastCandleId(string strategyName, string scaleName, string connectionString, List<ShareObject> shares)
@@ -418,6 +487,7 @@ namespace MAStrategyApp
                 shares[i].LastCandleIdForStrategy = Convert.ToInt32(res);
             }
         }
+
         private static DateTime GetFigiLastOpenCandleDt(string strategyName, string scaleName, string connectionString, TradeObject trade)
         {
             DateTime return_candle_dt = DateTime.MinValue;
@@ -432,9 +502,6 @@ namespace MAStrategyApp
 
 
         }
-
-
-
 
         private static List<CandleForSMAStratAnalysis> GetCandlesSMAObjects(List<string> shareCandlesFoAnalysisStrings)
         {
@@ -457,6 +524,7 @@ namespace MAStrategyApp
             }
             return candleForSMAStratAnalysisList;
         }
+
         private static void GetCandlesSMARows(string scaleName, string connectionString, List<ShareObject> shares)
         {
             log.Info("Требуется обработать: " + shares.Count);
@@ -470,8 +538,8 @@ namespace MAStrategyApp
                 shares[i].candleForSMAStratAnalysisList = GetCandlesSMAObjects(shareCandlesFoAnalysisStrings);
                 log.Info("Осталось обработать: " + (shares.Count - (i + 1)).ToString());
             }
-        }
-        
+        } 
+
         private static List<string> GetCandlesSMARows(string scaleName, string connectionString, TradeObject tradeObject, DateTime lastCandle_dateTime)
         {
 
@@ -483,5 +551,6 @@ namespace MAStrategyApp
 
             return candlesStrings;
         }
+
     }
 }

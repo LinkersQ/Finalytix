@@ -34,6 +34,26 @@ namespace FinInvestLibrary.Objects.Trade
         private float _tradeProfitByMinPerc;
         
         private TimeSpan _tradeDuration;
+        //--15.03.2023
+        private string _calculatetype;
+
+        //16.03.2023
+        private float _target1Value;
+        private float _target2Value;
+        private float _stopLoss1Value;
+        private float _stopLoss2Value;
+
+        private float _target1ClosePrice;
+        private DateTime _target1CloseDT;
+        private string _target1CloseCause;
+
+        private float _target2ClosePrice;
+        private DateTime _target2CloseDT;
+        private string _target2CloseCause;
+
+
+
+
 
         public int maxtradepricecandleid { get { return _maxtradepricecandleid; } set { _maxtradepricecandleid = value; } }
         public DateTime maxtradepricecandledt { get { return _maxtradepricecandledt; } set { _maxtradepricecandledt = value; } }
@@ -61,6 +81,23 @@ namespace FinInvestLibrary.Objects.Trade
         public float tradeProfitByMin { get { return _tradeProfitByMin; } set { _tradeProfitByMin = value; } }
         public float tradeProfitByMinPerc { get { return _tradeProfitByMinPerc; } set { _tradeProfitByMinPerc = value; } }
         public TimeSpan tradeDuration { get { return _tradeDuration; } set { _tradeDuration = value; } }
+        //--15.03.2023
+        public string calculatetype { get { return _calculatetype; } set { _calculatetype = value; } }
+
+
+        //16.03.2023
+        public float target1Value { get { return _target1Value; } set { _target1Value = value; } }
+        public float target2Value { get { return _target2Value; } set { _target2Value = value; } }
+        public float stopLoss1Value { get { return _stopLoss1Value; } set { _stopLoss1Value = value; } }
+        public float stopLoss2Value { get { return _stopLoss2Value; } set { _stopLoss2Value = value; } }
+
+        public float target1ClosePrice { get { return _target1ClosePrice; } set { _target1ClosePrice = value; } }
+        public DateTime target1CloseDT { get { return _target1CloseDT; } set { _target1CloseDT = value; } }
+        public string target1CloseCause { get { return _target1CloseCause; } set { _target1CloseCause = value; } }
+
+        public float target2ClosePrice { get { return _target2ClosePrice; } set { _target2ClosePrice = value; } }
+        public DateTime target2CloseDT { get { return _target2CloseDT; } set { _target2CloseDT = value; } }
+        public string target2CloseCause { get { return _target2CloseCause; } set { _target2CloseCause = value; } }
 
     }
 }
