@@ -21,36 +21,76 @@ namespace MAStrategyApp
         public static readonly ILog log = LogManager.GetLogger(typeof(Program));
         static int Main(string[] args)
         {
-
-            string runType = args[0];//"trade_close_point";//args[0];
-            string strategyName = args[1]; //args[1]; //"MA_12/26";
-            string fastInterval = strategyName.Split('_')[1].Split('/')[0];
-            string slowInterval = strategyName.Split('_')[1].Split('/')[1];
-
-            STRATEGY_NAME = strategyName;
-            FAST_INTERVAL = fastInterval;
-            SLOW_INTERVAL = slowInterval;
-
-            string scaleName = "1_day_scale";//args[2];
-            int exitCode = 9999;
             log4net.Config.XmlConfigurator.Configure();
             log.Info(@"/---------Start---------\");
             log.Info("Зачитываю конфигурацию");
+            string runType, strategyName, scaleName, connectionString;
+            int exitCode = 9999;
+            try
+            {
+                runType = args[0];//"trade_close_point";//args[0];
+                strategyName = args[1]; //args[1]; //"MA_12/26";
+                scaleName = "1_day_scale";//args[2];
+
+                string appPath = Environment.CurrentDirectory;
+                string connectionStringPath = appPath + "\\connectionString.txt";
+                connectionString = File.ReadAllText(connectionStringPath);
+
+                string fastInterval = strategyName.Split('_')[1].Split('/')[0];
+                string slowInterval = strategyName.Split('_')[1].Split('/')[1];
+
+                STRATEGY_NAME = strategyName;
+                FAST_INTERVAL = fastInterval;
+                SLOW_INTERVAL = slowInterval;
+            }
+            catch (Exception ex)
+            {
+                log.Error("Неверные входные параметры");
+                log.Error("Требуется указать: \r\n\trunType (trade_open_point/trade_close_point)\r\n\tstrategyName (MA_12/26 или MA_50/200 полный список доступных стретегий смотри в документации\r\n\tscaleName (1_day_scale)");
+                log.Error("exitCode = " + exitCode);
+                log.Error(ex.ToString());
+                exitCode = 11;
+                return exitCode;
+            }
+
+          
             DateTime currentDateTime = DateTime.UtcNow; //Tinkoff API работает всегда в UTC - придерживаемся тоже UTC;
-            string appPath = Environment.CurrentDirectory;
-            string connectionStringPath = appPath + "\\connectionString.txt";
-            string connectionString = File.ReadAllText(connectionStringPath);
+            
+
+
+            log.Info("Тип запуска: " + runType);
+            log.Info("Стратегия: " + STRATEGY_NAME);
+            log.Info("Масштаб: " + scaleName);
             log.Info("Строка подключения: " + connectionString);
 
-            var shares = new FinBaseConnector().GetSharesFromDB(connectionString);
+
+            //Получаю список активов, по которым требуется рассчитывать и контролировать сделки
+            var shares = new FinBaseConnector().GetSharesFromDB(connectionString).Where(w => w.country_of_risk.Equals("RU")).ToList(); 
+
             //Вызов стратегии
             if (runType.Equals("trade_open_point"))
             {
-                MA_Strategy_OpenTrade(strategyName, scaleName, connectionString, shares);
+                try
+                {
+                    MA_Strategy_OpenTrade(strategyName, scaleName, connectionString, shares);
+                }
+                catch (Exception ex)
+                {
+                    log.Error("Не удалось завершить процесс поиска входа в сделку");
+                    log.Error(ex);
+                }
             }
             else if (runType.Equals("trade_close_point"))
             {
-                MA_Strategy_TradeWorker(connectionString, scaleName);
+                try
+                { 
+                    MA_Strategy_TradeWorker(connectionString, scaleName);
+                }
+                catch (Exception ex)
+                {
+                    log.Error("Не удалось завершить процесс поиска выхода из сделки");
+                    log.Error(ex);
+                }
             }
 
 
@@ -71,16 +111,18 @@ namespace MAStrategyApp
             //Обрабатываю каждую сделку и ищу экстремумы + точки выхода
             foreach (var trade in tradeObjectList)
             {
+                DateTime lastCandle_dateTime = GetFigiLastOpenCandleDt(STRATEGY_NAME, scaleName, connectionString, trade);
+
                 DateTime executeStartDT = DateTime.UtcNow;
                 //для каждой сделки нужно найти все последующие свечи
                 //получаю список строк для конвертации их в объект candle
-                List<string> candlesStringList = GetCandlesSMARows(scaleName, connectionString, trade);
+                List<string> candlesStringList = GetCandlesSMARows(scaleName, connectionString, trade, lastCandle_dateTime);
                 List<CandleForSMAStratAnalysis> candleForSMAStratAnalyses = GetCandlesSMAObjects(candlesStringList);
 
-                //каждую полученную свечу проверяем на удовлетворение условию стратегии (пересечение короткой линией вниз длинную линию)
+                //каждую полученную свечу проверяем на удовлетворение условию стратегии (короткая линия пересекает длинную линию сверху вниз)
                 for(int i = 1; i < candleForSMAStratAnalyses.Count; i++)
                 {
-
+                    
                     var prevValue = candleForSMAStratAnalyses[i - 1].fastInterval - candleForSMAStratAnalyses[i - 1].slowInterval;
                     var currValue = candleForSMAStratAnalyses[i].fastInterval - candleForSMAStratAnalyses[i].slowInterval;
 
@@ -154,10 +196,23 @@ namespace MAStrategyApp
                             }
                         }
                     }
-                            
+
+
+                    string sqlCommandUpd = "update cfg_last_candles_for_strategy t set candle_id = '" 
+                        + candleForSMAStratAnalyses[i].candleId.ToString() 
+                        + "', candle_dt = '" + candleForSMAStratAnalyses[i].candleOpenDt 
+                        + "', update_dt = now() where t.figi = '" 
+                        + candleForSMAStratAnalyses[i].figi + "' and strategy_name = '" 
+                        + STRATEGY_NAME + "' and calc_scale = '" + scaleName + "'";
+                    log.Debug("Команда для обновления максимального candle_Id и Candle_DT: ");
+                    log.Debug(sqlCommandUpd);
+
+                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommandUpd);
+
                 }
 
-                
+
+             
 
                 DateTime executeFinishDT = DateTime.UtcNow;
                 log.Debug("Время выполнения: " + (executeFinishDT - executeStartDT).TotalSeconds + " секунд.");
@@ -197,7 +252,7 @@ namespace MAStrategyApp
         private static List<TradeObject> GetActiveTrades(string connectionString)
         {
             log.Info("Получаю список активных сделок");
-            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt from trades where closecandleid is null";
+            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt from trades where closecandleid is null and stratname = '" + STRATEGY_NAME + "'";
             List<string> tradesStrings = new PgExecuter(connectionString, log).ExecuteReader(sqlCommand);
             List<TradeObject> tradeObjectList = new List<TradeObject>();
             foreach (var str in tradesStrings)
@@ -228,14 +283,13 @@ namespace MAStrategyApp
 
         private static void MA_Strategy_OpenTrade(string strategyName, string scaleName, string connectionString, List<ShareObject> shares)
         {
-            var sharesForStrategy = shares.Where(w => w.country_of_risk.Equals("RU"));
-            Console.WriteLine(sharesForStrategy.ToList().Count());
-            GetFigiLastCandleId(strategyName, scaleName, connectionString, sharesForStrategy.ToList());
-            GetCandlesSMARows(scaleName, connectionString, sharesForStrategy.ToList()); //в коллекцию shares (в каждый элемент) добавляем колелкцию свечей для проведения анализа по стратегии MA
+            Console.WriteLine(shares.Count());
+            GetFigiLastCandleId(strategyName, scaleName, connectionString, shares);
+            GetCandlesSMARows(scaleName, connectionString, shares); //в коллекцию shares (в каждый элемент) добавляем колелкцию свечей для проведения анализа по стратегии MA
 
             //Анализируем на предмет пересечения быстрой и медленной линии
             log.Info("Запуск стратегии");
-            foreach (var share in sharesForStrategy)
+            foreach (var share in shares)
             {
                 List<TradeObject> tradeObjectList = new List<TradeObject>();
                 //Проверяем каждую свечу на предмет пробоя короткой линией длинной линии. При этом учитываем значение предыдущей свечи. Если короткая
@@ -305,29 +359,29 @@ namespace MAStrategyApp
 
             //Сохраняем найденные сделки в таблицу
 
-            var sharesFor = sharesForStrategy.ToList();
+            
             log.Info("Сохраняю найденные сделки по стратегии: " + strategyName);
             int tradesCount = 0;
-            for (int i = 0; i < sharesFor.Count(); i++)
+            for (int i = 0; i < shares.Count(); i++)
             {
-                log.Info("Сохраняю сделки по активу: " + sharesFor[i].name + "(" + sharesFor[i].figi + ")");
-                for (int ii = 0; ii < sharesFor[i].tradeObjects.Count; ii++)
+                log.Info("Сохраняю сделки по активу: " + shares[i].name + "(" + shares[i].figi + ")");
+                for (int ii = 0; ii < shares[i].tradeObjects.Count; ii++)
                 {
-                    string sqlCommand = "INSERT INTO public.trades (tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice,maxTradePrice,minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt) VALUES('" 
-                        + sharesFor[i].tradeObjects[ii].tradeId + "','" 
-                        + sharesFor[i].tradeObjects[ii].tradeType + "','" 
-                        + sharesFor[i].tradeObjects[ii].stratName + "','" 
-                        + sharesFor[i].tradeObjects[ii].openCandleId + "','" 
-                        + sharesFor[i].tradeObjects[ii].openCandleDt + "','" 
-                        + sharesFor[i].tradeObjects[ii].figi + "','" 
-                        + sharesFor[i].tradeObjects[ii].tradeStartDt + "','" 
-                        + sharesFor[i].tradeObjects[ii].openTradePrice.ToString().Replace(',', '.') + "','" 
-                        + sharesFor[i].tradeObjects[ii].maxTradePrice.ToString().Replace(',', '.') + "','"
-                        + sharesFor[i].tradeObjects[ii].minTradePrice.ToString().Replace(',', '.') +"'," 
-                        + sharesFor[i].tradeObjects[ii].maxtradepricecandleid + ",'" 
-                        + sharesFor[i].tradeObjects[ii].maxtradepricecandledt + "'," 
-                        + sharesFor[i].tradeObjects[ii].mintradepricecandleid +",'" 
-                        + sharesFor[i].tradeObjects[ii].mintradepricecandledt + "')";
+                    string sqlCommand = "INSERT INTO public.trades (tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice,maxTradePrice,minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype) VALUES('" 
+                        + shares[i].tradeObjects[ii].tradeId + "','" 
+                        + shares[i].tradeObjects[ii].tradeType + "','" 
+                        + shares[i].tradeObjects[ii].stratName + "','" 
+                        + shares[i].tradeObjects[ii].openCandleId + "','" 
+                        + shares[i].tradeObjects[ii].openCandleDt + "','" 
+                        + shares[i].tradeObjects[ii].figi + "','" 
+                        + shares[i].tradeObjects[ii].tradeStartDt + "','" 
+                        + shares[i].tradeObjects[ii].openTradePrice.ToString().Replace(',', '.') + "','" 
+                        + shares[i].tradeObjects[ii].maxTradePrice.ToString().Replace(',', '.') + "','"
+                        + shares[i].tradeObjects[ii].minTradePrice.ToString().Replace(',', '.') +"'," 
+                        + shares[i].tradeObjects[ii].maxtradepricecandleid + ",'" 
+                        + shares[i].tradeObjects[ii].maxtradepricecandledt + "'," 
+                        + shares[i].tradeObjects[ii].mintradepricecandleid +",'" 
+                        + shares[i].tradeObjects[ii].mintradepricecandledt + "','for_analysis')";
                     log.Debug("Команда для сохранения сделки: ");
                     log.Debug(sqlCommand);
                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
@@ -335,14 +389,15 @@ namespace MAStrategyApp
 
 
                 }
-                if (sharesFor[i].candleForSMAStratAnalysisList.Count > 0)
+                if (shares[i].candleForSMAStratAnalysisList.Count > 0)
                 {
                     log.Info("Сохранено " + tradesCount + " сделок");
-                    log.Info("Обновляю максимальный candle_id по активу " + sharesFor[i].name + "(" + sharesFor[i].figi + ")");
+                    log.Info("Обновляю максимальный candle_id по активу " + shares[i].name + "(" + shares[i].figi + ")");
 
-                    string sqlCommandUpd = "update cfg_last_candles_for_strategy t set candle_id = '" + sharesFor[i].candleForSMAStratAnalysisList.Max(m => m.candleId) + "', update_dt = now() where t.figi = '" + sharesFor[i].figi + "' and strategy_name = '" + strategyName + "' and calc_scale = '" + scaleName + "'";
-                    log.Debug("Команда для обновления максимального candleId: ");
+                    string sqlCommandUpd = "update cfg_last_candles_for_strategy t set candle_id = '" + shares[i].candleForSMAStratAnalysisList.Max(m => m.candleId) + "', candle_dt = '" + shares[i].candleForSMAStratAnalysisList.Max(m => m.candleOpenDt) + "', update_dt = now() where t.figi = '" + shares[i].figi + "' and strategy_name = '" + strategyName + "' and calc_scale = '" + scaleName + "'";
+                    log.Debug("Команда для обновления максимального candle_Id и Candle_DT: ");
                     log.Debug(sqlCommandUpd);
+
                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommandUpd);
                 }
 
@@ -362,6 +417,20 @@ namespace MAStrategyApp
                 var res = new PgExecuter(connectionString, log).ExecuteScalarQuery(getLastCandleIdComm);
                 shares[i].LastCandleIdForStrategy = Convert.ToInt32(res);
             }
+        }
+        private static DateTime GetFigiLastOpenCandleDt(string strategyName, string scaleName, string connectionString, TradeObject trade)
+        {
+            DateTime return_candle_dt = DateTime.MinValue;
+
+            string getLastCandleIdComm = string.Empty;
+            getLastCandleIdComm = "select candle_dt from public.cfg_last_candles_for_strategy where strategy_name = '" + strategyName + "' and calc_scale = '" + scaleName + "' and figi = '" + trade.figi + "'";
+            log.Info(getLastCandleIdComm);
+            var res = new PgExecuter(connectionString, log).ExecuteScalarQuery(getLastCandleIdComm);
+
+            return_candle_dt = Convert.ToDateTime(res);
+            return return_candle_dt;
+
+
         }
 
 
@@ -402,13 +471,13 @@ namespace MAStrategyApp
                 log.Info("Осталось обработать: " + (shares.Count - (i + 1)).ToString());
             }
         }
-
-        private static List<string> GetCandlesSMARows(string scaleName, string connectionString, TradeObject tradeObject)
+        
+        private static List<string> GetCandlesSMARows(string scaleName, string connectionString, TradeObject tradeObject, DateTime lastCandle_dateTime)
         {
 
             string getCandlesForAnalisys = string.Empty;
             
-            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.id >= " + tradeObject.openCandleId + " order by uhcas.candle_start_dt_utc";
+            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.candle_start_dt_utc >= '" + lastCandle_dateTime.AddDays(-4) + "' and uhcas.candle_start_dt_utc > '" + tradeObject.openCandleDt.AddDays(-1) + "'  order by uhcas.candle_start_dt_utc";
 
             List<string> candlesStrings = new PgExecuter(connectionString, log).ExecuteReader(getCandlesForAnalisys);
 
