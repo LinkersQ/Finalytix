@@ -26,12 +26,6 @@ namespace FinInvestLibrary.Objects.Trade
         private float _minTradePrice; // минимальная цена актива в сделке
         private int _mintradepricecandleid;
         private DateTime _mintradepricecandledt;
-        private float _tradeProfitByClose; // разница между ценой закрытия и открытия
-        private float _tradeProfitByClosePerc; //относительная разница между ценой закрытия и открытия
-        private float _tradeProfitByMax;
-        private float _tradeProfitByMaxPerc;
-        private float _tradeProfitByMin;
-        private float _tradeProfitByMinPerc;
         
         private TimeSpan _tradeDuration;
         //--15.03.2023
@@ -51,9 +45,11 @@ namespace FinInvestLibrary.Objects.Trade
         private DateTime _target2CloseDT;
         private string _target2CloseCause;
 
+        //17.03.2023
+        private bool _trade_is_close_analytic; //статус сделки для аналитической логики
+        private bool _trade_is_close_communication; //статус сделки для публикуемых сделок
 
-
-
+      
 
         public int maxtradepricecandleid { get { return _maxtradepricecandleid; } set { _maxtradepricecandleid = value; } }
         public DateTime maxtradepricecandledt { get { return _maxtradepricecandledt; } set { _maxtradepricecandledt = value; } }
@@ -74,12 +70,6 @@ namespace FinInvestLibrary.Objects.Trade
         public float closeTradePrice { get { return _closeTradePrice; } set { _closeTradePrice = value; } }
         public float maxTradePrice { get { return _maxTradePrice; } set { _maxTradePrice = value; } }
         public float minTradePrice { get { return _minTradePrice; } set { _minTradePrice = value; } }
-        public float tradeProfitByClose { get { return _tradeProfitByClose; } set { _tradeProfitByClose = value; } }
-        public float tradeProfitByClosePerc { get { return _tradeProfitByClosePerc; } set { _tradeProfitByClosePerc = value; } }
-        public float tradeProfitByMax { get { return _tradeProfitByMax; } set { _tradeProfitByMax = value; } }
-        public float tradeProfitByMaxPerc { get { return _tradeProfitByMaxPerc; } set { _tradeProfitByMaxPerc = value; } }
-        public float tradeProfitByMin { get { return _tradeProfitByMin; } set { _tradeProfitByMin = value; } }
-        public float tradeProfitByMinPerc { get { return _tradeProfitByMinPerc; } set { _tradeProfitByMinPerc = value; } }
         public TimeSpan tradeDuration { get { return _tradeDuration; } set { _tradeDuration = value; } }
         //--15.03.2023
         public string calculatetype { get { return _calculatetype; } set { _calculatetype = value; } }
@@ -98,6 +88,10 @@ namespace FinInvestLibrary.Objects.Trade
         public float target2ClosePrice { get { return _target2ClosePrice; } set { _target2ClosePrice = value; } }
         public DateTime target2CloseDT { get { return _target2CloseDT; } set { _target2CloseDT = value; } }
         public string target2CloseCause { get { return _target2CloseCause; } set { _target2CloseCause = value; } }
+
+        //17.03.2023
+        public bool trade_is_close_analytic { get { return _trade_is_close_analytic; } set { _trade_is_close_analytic = value; } }
+        public bool trade_is_close_communication { get { return _trade_is_close_communication; } set { _trade_is_close_communication = value; } }
 
     }
 }

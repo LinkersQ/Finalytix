@@ -29,9 +29,10 @@ namespace MAStrategyApp
             int exitCode = 9999;
             try
             {
-                runType = "trade_close_point";//"trade_close_point";//args[0];
-                strategyName = "MA_12/26"; //args[1]; //"MA_12/26";
-                scaleName = "1_day_scale";//args[2];
+
+                runType = args[0];//"trade_close_point";//args[0];
+                strategyName = args[1]; //args[1]; //"MA_12/26";
+                scaleName = args[2];//args[2];
 
                 string appPath = Environment.CurrentDirectory;
                 string connectionStringPath = appPath + "\\connectionString.txt";
@@ -85,14 +86,29 @@ namespace MAStrategyApp
                     log.Error(ex);
                 }
             }
-            //Запуск в режиме мониторинга активных сделок
-            else if (runType.Equals("trade_close_point"))
+            //Запуск в режиме мониторинга активных сделок для аналитики
+            else if (runType.Equals("trade_close_point_for_analysis"))
             {
                 try
                 {
-                    log.Info("Запущен режим мониторинга активных сделок по стратегии " + STRATEGY_NAME);
+                    log.Info("Запущен режим мониторинга активных сделок (для аналитики) по стратегии " + STRATEGY_NAME);
                     MA_Strategy_TradeWorker(connectionString, scaleName);
                     
+                }
+                catch (Exception ex)
+                {
+                    log.Error("Не удалось завершить процесс поиска выхода из сделки");
+                    log.Error(ex);
+                }
+            }
+            //Запуск в режиме мониторинга активных сделок для коммуникации
+            else if (runType.Equals("trade_close_point_trades_for_channel"))
+            {
+                try
+                {
+                    log.Info("Запущен режим мониторинга активных сделок (для рассылки) по стратегии " + STRATEGY_NAME);
+                    MA_Strategy_TradeWorker_TradesForChannel(connectionString, scaleName);
+
                 }
                 catch (Exception ex)
                 {
@@ -160,6 +176,12 @@ namespace MAStrategyApp
                             tradeObject.stopLoss1Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).stop_loss;
                             tradeObject.stopLoss2Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).stop_loss;
 
+                            tradeObject.trade_is_close_analytic = false;
+                            tradeObject.trade_is_close_communication = false;
+
+                            tradeObject.target1CloseCause = "OPEN";
+                            tradeObject.target2CloseCause = "OPEN";
+
 
                             tradeObjectList.Add(tradeObject);
                             log.Info("LONG: " + share.ticker + ", CandleID: " + tradeObject.openCandleId + ", Date: " + tradeObject.openCandleDt);
@@ -189,6 +211,12 @@ namespace MAStrategyApp
                             tradeObject.target2Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).target_2;
                             tradeObject.stopLoss1Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).stop_loss;
                             tradeObject.stopLoss2Value = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).stop_loss;
+
+                            tradeObject.trade_is_close_analytic = false;
+                            tradeObject.trade_is_close_communication = false;
+
+                            tradeObject.target1CloseCause = "OPEN";
+                            tradeObject.target2CloseCause = "OPEN";
 
                             tradeObjectList.Add(tradeObject);
                             log.Info("SHORT: " + share.ticker + ", CandleID: " + tradeObject.openCandleId + ", Date: " + tradeObject.openCandleDt);
@@ -230,7 +258,7 @@ namespace MAStrategyApp
         }
 
         /// <summary>
-        /// Модуль мониторинга сделок
+        /// Модуль мониторинга сделок для аналитики
         /// </summary>
         /// <param name="connectionString"></param>
         /// <param name="scaleName"></param>
@@ -242,13 +270,24 @@ namespace MAStrategyApp
             //Обрабатываю каждую сделку и ищу экстремумы + точки выхода
             foreach (var trade in tradeObjectList)
             {
+                float target1Price = 0;
+                float target2Price = 0;
+                float stopLossPrice = 0;
                 //Расчитываем фактические цены закрытия сделки для публикации в канал
-                float target1Price = trade.openTradePrice + trade.openTradePrice * trade.target1Value;
-                float target2Price = trade.openTradePrice + trade.openTradePrice * trade.target2Value;
-                float stopLossPrice = trade.openTradePrice - trade.openTradePrice * trade.stopLoss1Value;
-               
+                if (trade.tradeType.Equals("LONG"))
+                { 
+                     target1Price = trade.openTradePrice + trade.openTradePrice * trade.target1Value;
+                     target2Price = trade.openTradePrice + trade.openTradePrice * trade.target2Value;
+                     stopLossPrice = trade.openTradePrice - trade.openTradePrice * trade.stopLoss1Value;
+                }
+                else if (trade.tradeType.Equals("SHORT"))
+                {
+                     target1Price = trade.openTradePrice - trade.openTradePrice * trade.target1Value;
+                     target2Price = trade.openTradePrice - trade.openTradePrice * trade.target2Value;
+                     stopLossPrice = trade.openTradePrice - trade.openTradePrice * trade.stopLoss1Value;
+                }
 
-                DateTime lastCandle_dateTime = GetFigiLastOpenCandleDt(STRATEGY_NAME, scaleName, connectionString, trade);
+                    DateTime lastCandle_dateTime = GetFigiLastOpenCandleDt(STRATEGY_NAME, scaleName, connectionString, trade);
 
                     DateTime executeStartDT = DateTime.UtcNow;
                     //для каждой сделки нужно найти все последующие свечи
@@ -297,7 +336,7 @@ namespace MAStrategyApp
                                     trade.closeCandleDt = candleForSMAStratAnalyses[i].candleOpenDt;
                                     trade.tradeCloseDt = DateTime.Now;
                                     trade.closeTradePrice = candleForSMAStratAnalyses[i].closePrice;
-
+                                    trade.trade_is_close_analytic = true;
                                     CloseTrade(trade, connectionString); //Закрываем сделку
 
                                     log.Info("Сделка " + trade.tradeType + " ID:" + trade.tradeId + " закрыта");
@@ -317,6 +356,7 @@ namespace MAStrategyApp
                                     trade.closeCandleDt = candleForSMAStratAnalyses[i].candleOpenDt;
                                     trade.tradeCloseDt = DateTime.Now;
                                     trade.closeTradePrice = candleForSMAStratAnalyses[i].closePrice;
+                                    trade.trade_is_close_analytic = true;
                                     log.Info("Сделка " + trade.tradeType + " ID:" + trade.tradeId + " закрыта");
                                     CloseTrade(trade, connectionString); //Закрываем сделку
                                     break;
@@ -329,8 +369,21 @@ namespace MAStrategyApp
                     if (trade.target2CloseCause == null)
                     {
                         float currPrice = candleForSMAStratAnalyses[i].closePrice;
-                        if реализовать бизнес логику стратегии для публикации в канале
+                        if (trade.tradeType.Equals("LONG"))
+                        {
+                            if (currPrice >= target1Price)
+                            {
+                                //Записываем инфо о закрытии сделки по первому таргету
+
+                            }
+                        }
+                        else if (trade.tradeType.Equals("SHORT"))
+                        { 
                         
+                        }
+                        //float target1Price = trade.openTradePrice + trade.openTradePrice * trade.target1Value;
+                        //float target2Price = trade.openTradePrice + trade.openTradePrice * trade.target2Value;
+                        //float stopLossPrice = trade.openTradePrice - trade.openTradePrice * trade.stopLoss1Value;
                     }
 
                         string sqlCommandUpd = "update cfg_last_candles_for_strategy t set candle_id = '"
@@ -351,6 +404,230 @@ namespace MAStrategyApp
                 
 
             }
+        }
+
+        /// <summary>
+        /// Модуль мониторинга сделок для публикации в канале
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <param name="scaleName"></param>
+        private static void MA_Strategy_TradeWorker_TradesForChannel(string connectionString, string scaleName)
+        {
+            //получаем список активных сделок
+            List<TradeObject> tradeObjectList = GetActiveTrades(connectionString);
+            List<TradeObject> trades = GetActiveTrades(connectionString).OrderBy(o => o.openCandleDt).ToList();
+
+            foreach (var trade in trades)
+            {
+                float target1Price = 0;
+                float target2Price = 0;
+                float stopLossPrice = 0;
+                
+
+                //обработка аналитической части сделки
+                if (trade.trade_is_close_analytic is false)
+                { 
+                    //критерий закрытия аналитической сделки: короткая линия пересекает длинную сверху вниз
+                }
+                //обработка торговой части сделки
+                if(trade.trade_is_close_communication is false)
+                {
+                    //критерий закрытия торговой сделки: достижения таргета target2 или закрытие по стопу (первому или второму)
+
+                    //для каждой сделки нужно найти все последующие свечи
+                    //получаю список строк для конвертации их в объект candle
+                    List<string> candlesStringList = GetCandlesSMARows(scaleName, connectionString, trade, trade.openCandleDt);
+                    List<CandleForSMAStratAnalysis> candleForSMAStratAnalyses = GetCandlesSMAObjects(candlesStringList);
+
+                   
+                    //Расчитываем фактические цены закрытия сделки для публикации в канал
+                    if (trade.tradeType.Equals("LONG"))
+                    {
+                        target1Price = trade.openTradePrice + trade.openTradePrice * trade.target1Value;
+                        target2Price = trade.openTradePrice + trade.openTradePrice * trade.target2Value;
+                        if (trade.target1CloseCause.Equals("OPEN"))
+                            stopLossPrice = trade.openTradePrice + trade.openTradePrice * trade.stopLoss1Value;//значение stopLoss1Value должно быть отрицательным!!!!
+                        else if (trade.target2CloseCause.Equals("OPEN"))
+                            stopLossPrice = trade.openTradePrice + trade.openTradePrice * trade.stopLoss2Value;
+                    }
+                    else if (trade.tradeType.Equals("SHORT"))
+                    {
+                        target1Price = trade.openTradePrice - trade.openTradePrice * trade.target1Value;
+                        target2Price = trade.openTradePrice - trade.openTradePrice * trade.target2Value;
+                        if (trade.target1CloseCause.Equals("OPEN"))
+                            stopLossPrice = trade.openTradePrice - trade.openTradePrice * trade.stopLoss1Value;
+                        else if (trade.target2CloseCause.Equals("OPEN"))
+                            stopLossPrice = trade.openTradePrice - trade.openTradePrice * trade.stopLoss2Value;
+                    }
+
+
+                    //Обрабатываем каждую свечу из полученных для текущей сделки
+                    foreach (var candle in candleForSMAStratAnalyses)
+                    {
+                        //Вычисляем последнюю актуальную цену обрабатываемой свечи
+
+                        float currMaxPrice = candle.maxPrice;
+                        float currMinPrice = candle.minPrice;
+
+                        //проверяем, что Target1 еще не закрыт (проверка по полю target1CloseCause)
+                        if (!trade.target1CloseCause.Equals("PROFIT") & !trade.target1CloseCause.Equals("STOP_LOSS"))
+                        {
+                            //Проверяем достижение первой цели
+                            if (target1Price >= currMinPrice & target1Price <=currMaxPrice & !trade.target1CloseCause.Equals("PROFIT"))
+                            { 
+                                //Обновляем информацию в сделке - достижение таргета и новый StopLoss
+                                trade.target1ClosePrice = target1Price;
+                                trade.target1CloseDT = candle.candleOpenDt;
+                                trade.target1CloseCause = "PROFIT";
+                                trade.stopLoss2Value = float.Parse("0,001");
+
+                                string sqlCommand = "UPDATE public.trades t SET target1ClosePrice = " + trade.target1ClosePrice.ToString().Replace(',', '.')
+                                    + ", target1CloseDT = '" + trade.target1CloseDT.ToString()
+                                    + "', target1CloseCause = '" + trade.target1CloseCause
+                                    + "', stopLoss2Value = " + trade.stopLoss2Value.ToString().Replace(',', '.') + " WHERE t.tradeid = '" + trade.tradeId + "'";
+
+
+                                new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
+                            }
+
+                            //Проверяем достижение второй цели. Если цель достигнута - закрываем сделку
+                            if (target2Price >= currMinPrice & target2Price <= currMaxPrice & !trade.target2CloseCause.Equals("PROFIT"))
+                            {
+                                //Обновляем информацию в сделке - достижение таргета и новый StopLoss
+                                trade.target2ClosePrice = target2Price;
+                                trade.target2CloseDT = candle.candleOpenDt;
+                                trade.target2CloseCause = "PROFIT";
+                                trade.trade_is_close_communication = true;
+
+
+                                string sqlCommand = "UPDATE public.trades t SET target1ClosePrice = " + trade.target2ClosePrice.ToString().Replace(',', '.')
+                                    + ", target1CloseDT = '" + trade.target2CloseDT.ToString()
+                                    + "', target1CloseCause = '" + trade.target2CloseCause
+                                    + "', trade_is_close_communication = '" + trade.trade_is_close_communication
+                                    + "' WHERE t.tradeid = '" + trade.tradeId + "'";
+
+
+                                new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
+                                break;
+                            }
+
+                            //Проверяем на срабатывание StopLoss
+                            if (stopLossPrice >= currMinPrice & stopLossPrice <= currMaxPrice)
+                            {
+                                //Проверяем какой именно стоп сработал (от первой цели или от второй?)
+
+                                //Сработал 1-й стоп: обновляем цифры и закрываем сделку
+                                if (!trade.target1CloseCause.Equals("PROFIT"))
+                                {
+                                    //Обновляем информацию в сделке - достижение таргета и новый StopLoss
+                                    trade.target1ClosePrice = stopLossPrice;
+                                    trade.target1CloseDT = candle.candleOpenDt;
+                                    trade.target1CloseCause = "STOPLOSS_1";
+                                    trade.trade_is_close_communication = true;
+
+                                    string sqlCommand = "UPDATE public.trades t SET target1ClosePrice = " + trade.target1ClosePrice.ToString().Replace(',', '.')
+                                        + ", target1CloseDT = '" + trade.target1CloseDT.ToString()
+                                        + "', target1CloseCause = '" + trade.target1CloseCause
+                                        + "', trade_is_close_communication = '" + trade.trade_is_close_communication
+                                        + "' WHERE t.tradeid = '" + trade.tradeId + "'";
+
+
+                                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
+                                    break;
+                                }
+                                //Сработал 2-й стоп: обновляем цифры и закрываем сделку
+                                else if (!trade.target2CloseCause.Equals("PROFIT"))
+                                {
+                                    trade.target2ClosePrice = stopLossPrice;
+                                    trade.target2CloseDT = candle.candleOpenDt;
+                                    trade.target2CloseCause = "STOPLOSS_2";
+                                    trade.trade_is_close_communication = true;
+
+                                    string sqlCommand = "UPDATE public.trades t SET target2ClosePrice = " + trade.target2ClosePrice.ToString().Replace(',', '.')
+                                        + ", target2CloseDT = '" + trade.target2CloseDT.ToString()
+                                        + "', target2CloseCause = '" + trade.target2CloseCause
+                                         + "', trade_is_close_communication = '" + trade.trade_is_close_communication
+                                        + "' WHERE t.tradeid = '" + trade.tradeId + "'";
+
+
+                                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
+                                    break;
+                                }
+
+                            }
+                        }
+                        // если первый таргет был достигнут - проверяем второй
+                        else if (!trade.target2CloseCause.Equals("PROFIT") & !trade.target2CloseCause.Equals("STOP_LOSS"))
+                        {
+                            //Проверяем достижение второй цели. Если цель достигнута - закрываем сделку
+                            if (target2Price >= currMinPrice & target2Price <= currMaxPrice & !trade.target2CloseCause.Equals("PROFIT"))
+                            {
+                                //Обновляем информацию в сделке - достижение таргета и новый StopLoss
+                                trade.target2ClosePrice = target2Price;
+                                trade.target2CloseDT = candle.candleOpenDt;
+                                trade.target2CloseCause = "PROFIT";
+                                trade.trade_is_close_communication = true;
+
+
+                                string sqlCommand = "UPDATE public.trades t SET target2ClosePrice = " + trade.target2ClosePrice.ToString().Replace(',', '.')
+                                    + ", target2CloseDT = '" + trade.target2CloseDT.ToString()
+                                    + "', target2CloseCause = '" + trade.target2CloseCause
+                                    + "', trade_is_close_communication = '" + trade.trade_is_close_communication
+                                    + "' WHERE t.tradeid = '" + trade.tradeId + "'";
+
+
+                                new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
+                                break;
+                            }
+
+                            //Проверяем на срабатывание StopLoss
+                            if (stopLossPrice >= currMinPrice & stopLossPrice <= currMaxPrice)
+                            {
+                                //Проверяем какой именно стоп сработал (от первой цели или от второй?)
+
+                                //Сработал 1-й стоп: обновляем цифры и закрываем сделку
+                                if (!trade.target1CloseCause.Equals("PROFIT"))
+                                {
+                                    //Обновляем информацию в сделке - достижение таргета и новый StopLoss
+                                    trade.target1ClosePrice = stopLossPrice;
+                                    trade.target1CloseDT = candle.candleOpenDt;
+                                    trade.target1CloseCause = "STOPLOSS_1";
+                                    trade.trade_is_close_communication = true;
+
+                                    string sqlCommand = "UPDATE public.trades t SET target1ClosePrice = " + trade.target1ClosePrice.ToString().Replace(',', '.')
+                                        + ", target1CloseDT = '" + trade.target1CloseDT.ToString()
+                                        + "', target1CloseCause = '" + trade.target1CloseCause
+                                        + "', trade_is_close_communication = '" + trade.trade_is_close_communication
+                                        + "' WHERE t.tradeid = '" + trade.tradeId + "'";
+
+
+                                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
+                                    break;
+                                }
+                                //Сработал 2-й стоп: обновляем цифры и закрываем сделку
+                                else if (!trade.target2CloseCause.Equals("PROFIT"))
+                                {
+                                    trade.target2ClosePrice = stopLossPrice;
+                                    trade.target2CloseDT = candle.candleOpenDt;
+                                    trade.target2CloseCause = "STOPLOSS_2";
+                                    trade.trade_is_close_communication = true;
+
+                                    string sqlCommand = "UPDATE public.trades t SET target2ClosePrice = " + trade.target2ClosePrice.ToString().Replace(',', '.')
+                                        + ", target2CloseDT = '" + trade.target2CloseDT.ToString()
+                                        + "', target2CloseCause = '" + trade.target2CloseCause
+                                         + "', trade_is_close_communication = '" + trade.trade_is_close_communication
+                                        + "' WHERE t.tradeid = '" + trade.tradeId + "'";
+
+
+                                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
+                                    break;
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }          
         }
 
         private static List<TradeTargetObject> GetTargetsForTrades(string connectionString)
@@ -396,21 +673,15 @@ namespace MAStrategyApp
                 + ", closeCandleDt = '" + trade.closeCandleDt.ToString()
                 + "', tradeCloseDt = '" + trade.tradeCloseDt.ToString() 
                 + "', closeTradePrice = '" + trade.closeTradePrice.ToString().Replace(',', '.')
-                + "', tradeProfitByClose = '" + trade.tradeProfitByClose.ToString().Replace(',', '.')
-                + "', tradeProfitByClosePerc = '" + trade.tradeProfitByClosePerc.ToString().Replace(',', '.')
-                + "', tradeProfitByMax = '" + trade.tradeProfitByMax.ToString().Replace(',','.') 
-                + "', tradeProfitByMaxPerc = '" + trade.tradeProfitByMaxPerc.ToString().Replace(',','.') 
-                + "', tradeProfitByMin = '" + trade.tradeProfitByMin.ToString().Replace(',','.') 
-                + "', tradeProfitByMinPerc = '" + trade.tradeProfitByMinPerc.ToString().Replace(',','.') 
-                + "', tradedurationsec = " + trade.tradeDuration.TotalSeconds 
-                + " where t.tradeid = '" + trade.tradeId + "'";
+                + "', trade_is_close_analytic = '" + trade.trade_is_close_analytic 
+                + "' where t.tradeid = '" + trade.tradeId + "'";
             new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
         }
 
         private static List<TradeObject> GetActiveTrades(string connectionString)
         {
             log.Info("Получаю список активных сделок");
-            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype, target1Value, target2Value, stopLoss1Value, stopLoss2Value from trades where (closecandleid is null or target2closedt is null) and stratname = '" + STRATEGY_NAME + "'";
+            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype, target1Value, target2Value, stopLoss1Value, stopLoss2Value, target1ClosePrice, target2ClosePrice, target1CloseDT, target2CloseDT, target1CloseCause, target2CloseCause, trade_is_close_analytic, trade_is_close_communication from trades where (closecandleid is null or target2closedt is null) and stratname = '" + STRATEGY_NAME + "'";
             List<string> tradesStrings = new PgExecuter(connectionString, log).ExecuteReader(sqlCommand);
             List<TradeObject> tradeObjectList = new List<TradeObject>();
             foreach (var str in tradesStrings)
@@ -436,7 +707,23 @@ namespace MAStrategyApp
                 tradeObject.target1Value = float.Parse(partsOfRow[15]);
                 tradeObject.target2Value = float.Parse(partsOfRow[16]);
                 tradeObject.stopLoss1Value = float.Parse(partsOfRow[17]);
-                tradeObject.stopLoss2Value = float.Parse(partsOfRow[18]);   
+                tradeObject.stopLoss2Value = float.Parse(partsOfRow[18]);  
+                
+                if (partsOfRow[19].Length>0)
+                    tradeObject.target1ClosePrice = float.Parse(partsOfRow[19]);
+                if (partsOfRow[20].Length > 0)
+                    tradeObject.target2ClosePrice = float.Parse(partsOfRow[20]);
+                if (partsOfRow[21].Length > 0)
+                    tradeObject.target1CloseDT = Convert.ToDateTime(partsOfRow[21]);
+                if (partsOfRow[22].Length > 0)
+                    tradeObject.target2CloseDT = Convert.ToDateTime(partsOfRow[22]);
+                if (partsOfRow[23].Length > 0)
+                    tradeObject.target1CloseCause = partsOfRow[23].ToString();
+                if (partsOfRow[24].Length > 0)
+                    tradeObject.target2CloseCause = partsOfRow[24].ToString();
+
+                tradeObject.trade_is_close_analytic = Convert.ToBoolean(partsOfRow[25].ToString());
+                tradeObject.trade_is_close_communication = Convert.ToBoolean(partsOfRow[26].ToString());
 
                 tradeObjectList.Add(tradeObject);
             }
@@ -444,13 +731,11 @@ namespace MAStrategyApp
             return tradeObjectList;
         }
 
-
-
         private static string PrepareSaveTradeCommand(List<ShareObject> shares, int ShareCycleNum, int TradeCycleNum, string tradeType)
         {
             shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeId = Guid.NewGuid().ToString().Replace("-", "");
 
-            string sqlCommand = "INSERT INTO public.trades (tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice,maxTradePrice,minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype,target1Value,target2Value,stopLoss1Value,stopLoss2Value) VALUES('"
+            string sqlCommand = "INSERT INTO public.trades (tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice,maxTradePrice,minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype,target1Value,target2Value,stopLoss1Value,stopLoss2Value, trade_is_close_analytic, trade_is_close_communication, target1CloseCause, target2CloseCause) VALUES('"
                 + shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeId + "','"
                 + shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeType + "','"
                 + shares[ShareCycleNum].tradeObjects[TradeCycleNum].stratName + "','"
@@ -469,7 +754,11 @@ namespace MAStrategyApp
                 + shares[ShareCycleNum].tradeObjects[TradeCycleNum].target1Value.ToString().Replace(',', '.') + "','"
                 + shares[ShareCycleNum].tradeObjects[TradeCycleNum].target2Value.ToString().Replace(',', '.') + "','"
                 + shares[ShareCycleNum].tradeObjects[TradeCycleNum].stopLoss1Value.ToString().Replace(',', '.') + "','"
-                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].stopLoss2Value.ToString().Replace(',', '.') + "')";
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].stopLoss2Value.ToString().Replace(',', '.') + "',"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].trade_is_close_analytic + "," 
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].trade_is_close_communication +",'"
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].target1CloseCause +"','" 
+                + shares[ShareCycleNum].tradeObjects[TradeCycleNum].target2CloseCause + "')";
 
             log.Debug("Команда для сохранения сделки: ");
             log.Debug(sqlCommand);
@@ -545,7 +834,7 @@ namespace MAStrategyApp
 
             string getCandlesForAnalisys = string.Empty;
             
-            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.candle_start_dt_utc >= '" + lastCandle_dateTime.AddDays(-4) + "' and uhcas.candle_start_dt_utc > '" + tradeObject.openCandleDt.AddDays(-1) + "'  order by uhcas.candle_start_dt_utc";
+            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.candle_start_dt_utc > '" + tradeObject.openCandleDt.AddDays(-1) + "'  order by uhcas.candle_start_dt_utc";
 
             List<string> candlesStrings = new PgExecuter(connectionString, log).ExecuteReader(getCandlesForAnalisys);
 
