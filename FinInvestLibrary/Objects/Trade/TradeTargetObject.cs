@@ -1,8 +1,11 @@
-﻿namespace MAStrategyApp
+﻿using System.Globalization;
+
+namespace MAStrategyApp
 {
     public class TradeTargetObject
     {
         private string _figi;
+        private string _ticker;
         private string _stratname;
         private string _tradeType;
         private float _target_1;
@@ -12,6 +15,7 @@
         private float _stop_loss;
 
         public string figi { get { return _figi; } set { _figi = value; } }
+        public string ticker { get { return _ticker; } set { _ticker = value; } }
         public string stratname { get { return _stratname; } set { _stratname = value; } }
         public string tradeType { get { return _tradeType; } set { _tradeType = value; } }
         public float target_1 { get { return _target_1;} set { _target_1 = value; } }

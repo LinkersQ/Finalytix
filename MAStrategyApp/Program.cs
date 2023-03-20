@@ -7,6 +7,7 @@ using FinInvestLibrary.Objects;
 using System.Net.WebSockets;
 using System.Globalization;
 using Npgsql.Replication.PgOutput.Messages;
+using Newtonsoft.Json;
 
 namespace MAStrategyApp
 
@@ -29,11 +30,15 @@ namespace MAStrategyApp
             int exitCode = 9999;
             try
             {
-
+#if DEBUG
+                runType = "trade_close_point_trades_for_channel";
+                strategyName = "MA_12/26";
+                scaleName = "1_day_scale";
+#else
                 runType = args[0];//"trade_close_point";//args[0];
                 strategyName = args[1]; //args[1]; //"MA_12/26";
                 scaleName = args[2];//args[2];
-
+#endif
                 string appPath = Environment.CurrentDirectory;
                 string connectionStringPath = appPath + "\\connectionString.txt";
                 connectionString = File.ReadAllText(connectionStringPath);
@@ -157,6 +162,7 @@ namespace MAStrategyApp
                         if (currValue > 0)
                         {
                             TradeObject tradeObject = new TradeObject();
+                            tradeObject.tradeId = Guid.NewGuid().ToString().Replace("-", "");
                             tradeObject.tradeType = "LONG";
                             tradeObject.stratName = strategyName;
                             tradeObject.openCandleId = share.candleForSMAStratAnalysisList[i].candleId;
@@ -193,6 +199,7 @@ namespace MAStrategyApp
                         if (currValue < 0)
                         {
                             TradeObject tradeObject = new TradeObject();
+                            tradeObject.tradeId = Guid.NewGuid().ToString().Replace("-", "");
                             tradeObject.tradeType = "SHORT";
                             tradeObject.stratName = strategyName;
                             tradeObject.openCandleId = share.candleForSMAStratAnalysisList[i].candleId;
@@ -237,8 +244,14 @@ namespace MAStrategyApp
                 for (int ii = 0; ii < shares[i].tradeObjects.Count; ii++)
                 {
 
+                    //подготавливаем данные для записи в БД
                     string sqlCommand_analysis = PrepareSaveTradeCommand(shares, i, ii, "for_analysis");
-                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_analysis);
+                    string jsonObj = JSONSerializedTrade(shares[i].tradeObjects[ii], tradeTargetObjects.FirstOrDefault(f => f.figi.Equals(shares[i].tradeObjects[ii].figi)).ticker.ToString(), "OPEN_TRADE");
+
+                    //сохраняем информацию о сделках в БД
+                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_analysis); //таблица сделок для аналитики
+                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications); //сделки для каналов коммуникации
 
                     tradesCount++;
                 }
@@ -255,6 +268,46 @@ namespace MAStrategyApp
                 }
             }
 
+        }
+
+       
+
+        private static string JSONSerializedTrade(TradeObject tradeObject, string ticker, string communicationTemplate)
+        {
+
+            string channel_id = tradeObject.stratName.Equals("MA_12/26") ? "-1001669467340" : "-1001906521615";
+
+            string template_id = communicationTemplate ;
+
+            //Готовим объект для сериализации в JSON
+            var obj = new
+            {
+                trade_id = tradeObject.tradeId
+                , figi = tradeObject.figi
+                , name = ""
+                , ticker = "#" + ticker
+                , strat_name = tradeObject.stratName
+                , trade_type = tradeObject.tradeType
+                , open_price = tradeObject.openTradePrice.ToString()
+                , target_price_1 = tradeObject.stratName.Equals("LONG") ?
+                            (tradeObject.openTradePrice + (tradeObject.target1Value * tradeObject.openTradePrice)).ToString()
+                                : (tradeObject.openTradePrice - (tradeObject.target1Value * tradeObject.openTradePrice)).ToString()
+                , target_perc_1 = (tradeObject.target1Value * 100).ToString()
+                , target_price_2 = tradeObject.stratName.Equals("LONG") ?
+                            (tradeObject.openTradePrice + (tradeObject.target2Value * tradeObject.openTradePrice)).ToString()
+                                : (tradeObject.openTradePrice - (tradeObject.target2Value * tradeObject.openTradePrice)).ToString()
+                , target_perc_2 = (tradeObject.target2Value * 100).ToString()
+                , stop_loss_price = tradeObject.stratName.Equals("LONG") ?
+                            (tradeObject.openTradePrice + (tradeObject.stopLoss1Value * tradeObject.openTradePrice)).ToString()
+                            : (tradeObject.openTradePrice - (tradeObject.stopLoss1Value * tradeObject.openTradePrice)).ToString()
+                , stop_loss_perc = (tradeObject.stopLoss1Value * 100).ToString()
+                , trade_dur_forecast = tradeObject.tradeDuration.ToString()
+                , communication_channel = "Telegram".ToUpper()
+                , channel_id = channel_id
+                , message_template_name = template_id
+            };
+            string jsonObj = JsonConvert.SerializeObject(obj);
+            return jsonObj;
         }
 
         /// <summary>
@@ -475,6 +528,7 @@ namespace MAStrategyApp
                             //Проверяем достижение первой цели
                             if (target1Price >= currMinPrice & target1Price <=currMaxPrice & !trade.target1CloseCause.Equals("PROFIT"))
                             { 
+                                //ПРОФИТ 1 достигнут!
                                 //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                 trade.target1ClosePrice = target1Price;
                                 trade.target1CloseDT = candle.candleOpenDt;
@@ -486,13 +540,19 @@ namespace MAStrategyApp
                                     + "', target1CloseCause = '" + trade.target1CloseCause
                                     + "', stopLoss2Value = " + trade.stopLoss2Value.ToString().Replace(',', '.') + " WHERE t.tradeid = '" + trade.tradeId + "'";
 
+                                string ticker =  new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
+                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_1_DONE");
 
+                                string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+
+                                new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
                                 new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
                             }
 
                             //Проверяем достижение второй цели. Если цель достигнута - закрываем сделку
                             if (target2Price >= currMinPrice & target2Price <= currMaxPrice & !trade.target2CloseCause.Equals("PROFIT"))
                             {
+                                //ПРОФИТ 2 достигнут
                                 //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                 trade.target2ClosePrice = target2Price;
                                 trade.target2CloseDT = candle.candleOpenDt;
@@ -506,6 +566,14 @@ namespace MAStrategyApp
                                     + "', trade_is_close_communication = '" + trade.trade_is_close_communication
                                     + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
+                                string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
+                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_2_CLOSE_TRADE");
+
+                                string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+
+
+
+                                new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
                                 new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
                                 break;
@@ -519,6 +587,7 @@ namespace MAStrategyApp
                                 //Сработал 1-й стоп: обновляем цифры и закрываем сделку
                                 if (!trade.target1CloseCause.Equals("PROFIT"))
                                 {
+                                    //Сработал первый стоп лосс
                                     //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                     trade.target1ClosePrice = stopLossPrice;
                                     trade.target1CloseDT = candle.candleOpenDt;
@@ -532,12 +601,21 @@ namespace MAStrategyApp
                                         + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
 
+
+                                    string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
+                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS");
+
+                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+
+                                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
+
                                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
                                     break;
                                 }
                                 //Сработал 2-й стоп: обновляем цифры и закрываем сделку
                                 else if (!trade.target2CloseCause.Equals("PROFIT"))
                                 {
+                                    //Сработал второй стоп лосс
                                     trade.target2ClosePrice = stopLossPrice;
                                     trade.target2CloseDT = candle.candleOpenDt;
                                     trade.target2CloseCause = "STOPLOSS_2";
@@ -548,6 +626,14 @@ namespace MAStrategyApp
                                         + "', target2CloseCause = '" + trade.target2CloseCause
                                          + "', trade_is_close_communication = '" + trade.trade_is_close_communication
                                         + "' WHERE t.tradeid = '" + trade.tradeId + "'";
+
+
+                                    string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
+                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS");
+
+                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+
+                                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
 
                                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
@@ -562,6 +648,7 @@ namespace MAStrategyApp
                             //Проверяем достижение второй цели. Если цель достигнута - закрываем сделку
                             if (target2Price >= currMinPrice & target2Price <= currMaxPrice & !trade.target2CloseCause.Equals("PROFIT"))
                             {
+                                //ПРОФИТ 2 достигнут
                                 //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                 trade.target2ClosePrice = target2Price;
                                 trade.target2CloseDT = candle.candleOpenDt;
@@ -575,6 +662,14 @@ namespace MAStrategyApp
                                     + "', trade_is_close_communication = '" + trade.trade_is_close_communication
                                     + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
+                                string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
+                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_2_CLOSE_TRADE");
+
+                                string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+
+
+
+                                new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
                                 new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
                                 break;
@@ -588,6 +683,7 @@ namespace MAStrategyApp
                                 //Сработал 1-й стоп: обновляем цифры и закрываем сделку
                                 if (!trade.target1CloseCause.Equals("PROFIT"))
                                 {
+                                    //Сработал первый стоп лосс
                                     //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                     trade.target1ClosePrice = stopLossPrice;
                                     trade.target1CloseDT = candle.candleOpenDt;
@@ -600,6 +696,12 @@ namespace MAStrategyApp
                                         + "', trade_is_close_communication = '" + trade.trade_is_close_communication
                                         + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
+                                    string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
+                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS");
+
+                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+
+                                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
                                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
                                     break;
@@ -607,6 +709,7 @@ namespace MAStrategyApp
                                 //Сработал 2-й стоп: обновляем цифры и закрываем сделку
                                 else if (!trade.target2CloseCause.Equals("PROFIT"))
                                 {
+                                    //Сработал второй стоп лосс
                                     trade.target2ClosePrice = stopLossPrice;
                                     trade.target2CloseDT = candle.candleOpenDt;
                                     trade.target2CloseCause = "STOPLOSS_2";
@@ -618,6 +721,12 @@ namespace MAStrategyApp
                                          + "', trade_is_close_communication = '" + trade.trade_is_close_communication
                                         + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
+                                    string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
+                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS");
+
+                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+
+                                    new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
                                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
                                     break;
@@ -634,7 +743,7 @@ namespace MAStrategyApp
         {
             log.Info("Получаю список таргетов по активам");
             List<TradeTargetObject> tradeTargetObjects= new List<TradeTargetObject>();
-            string sqlCommand = "select figi, stratname, target_1, target_2, target_1_duration, target_2_duration, stop_loss_2 as stop_loss, tradetype from targets_for_trades";
+            string sqlCommand = "select figi, stratname, target_1, target_2, target_1_duration, target_2_duration, stop_loss_2 as stop_loss, tradetype, ticker from targets_for_trades";
             List<string> stringTargetList = new PgExecuter(connectionString, log).ExecuteReader(sqlCommand);
 
             foreach (var str in stringTargetList)
@@ -649,6 +758,7 @@ namespace MAStrategyApp
                 targetObject.target_2_duration = float.Parse(partsOfRow[5]);
                 targetObject.stop_loss = float.Parse(partsOfRow[6]);
                 targetObject.tradeType = partsOfRow[7];
+                targetObject.ticker = partsOfRow[8];
 
                 tradeTargetObjects.Add(targetObject);
             }
@@ -733,7 +843,7 @@ namespace MAStrategyApp
 
         private static string PrepareSaveTradeCommand(List<ShareObject> shares, int ShareCycleNum, int TradeCycleNum, string tradeType)
         {
-            shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeId = Guid.NewGuid().ToString().Replace("-", "");
+            
 
             string sqlCommand = "INSERT INTO public.trades (tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice,maxTradePrice,minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype,target1Value,target2Value,stopLoss1Value,stopLoss2Value, trade_is_close_analytic, trade_is_close_communication, target1CloseCause, target2CloseCause) VALUES('"
                 + shares[ShareCycleNum].tradeObjects[TradeCycleNum].tradeId + "','"
