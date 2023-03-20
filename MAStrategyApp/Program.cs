@@ -31,7 +31,7 @@ namespace MAStrategyApp
             try
             {
 #if DEBUG
-                runType = "trade_close_point_trades_for_channel";
+                runType = "trade_open_point";
                 strategyName = "MA_12/26";
                 scaleName = "1_day_scale";
 #else
@@ -187,7 +187,7 @@ namespace MAStrategyApp
 
                             tradeObject.target1CloseCause = "OPEN";
                             tradeObject.target2CloseCause = "OPEN";
-
+                            tradeObject.tradeDuration = tradeTargetObjects.FirstOrDefault(f => f.tradeType == tradeObject.tradeType & f.figi == share.figi & f.stratname == strategyName).target_2_duration;
 
                             tradeObjectList.Add(tradeObject);
                             log.Info("LONG: " + share.ticker + ", CandleID: " + tradeObject.openCandleId + ", Date: " + tradeObject.openCandleDt);
@@ -246,10 +246,10 @@ namespace MAStrategyApp
 
                     //подготавливаем данные для записи в БД
                     string sqlCommand_analysis = PrepareSaveTradeCommand(shares, i, ii, "for_analysis");
-                    string jsonObj = JSONSerializedTrade(shares[i].tradeObjects[ii], tradeTargetObjects.FirstOrDefault(f => f.figi.Equals(shares[i].tradeObjects[ii].figi)).ticker.ToString(), "OPEN_TRADE");
+                    string jsonObj = JSONSerializedTrade(shares[i].tradeObjects[ii], tradeTargetObjects.FirstOrDefault(f => f.figi.Equals(shares[i].tradeObjects[ii].figi)).ticker.ToString(), "OPEN_TRADE.txt");
 
                     //сохраняем информацию о сделках в БД
-                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                    string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + shares[i].tradeObjects[ii].tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_analysis); //таблица сделок для аналитики
                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications); //сделки для каналов коммуникации
 
@@ -541,9 +541,9 @@ namespace MAStrategyApp
                                     + "', stopLoss2Value = " + trade.stopLoss2Value.ToString().Replace(',', '.') + " WHERE t.tradeid = '" + trade.tradeId + "'";
 
                                 string ticker =  new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
-                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_1_DONE");
+                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_1_DONE.txt");
 
-                                string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                                string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + trade.tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
 
                                 new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
                                 new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
@@ -567,9 +567,9 @@ namespace MAStrategyApp
                                     + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
                                 string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
-                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_2_CLOSE_TRADE");
+                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_2_CLOSE_TRADE.txt");
 
-                                string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                                string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + trade.tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
 
 
 
@@ -603,9 +603,9 @@ namespace MAStrategyApp
 
 
                                     string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
-                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS");
+                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS.txt");
 
-                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + trade.tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
 
                                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
@@ -629,9 +629,9 @@ namespace MAStrategyApp
 
 
                                     string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
-                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS");
+                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS.txt");
 
-                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + trade.tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
 
                                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
@@ -663,9 +663,9 @@ namespace MAStrategyApp
                                     + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
                                 string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
-                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_2_CLOSE_TRADE");
+                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_2_CLOSE_TRADE.txt");
 
-                                string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                                string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + trade.tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
 
 
 
@@ -697,9 +697,9 @@ namespace MAStrategyApp
                                         + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
                                     string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
-                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS");
+                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS.txt");
 
-                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + trade.tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
 
                                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
@@ -722,9 +722,9 @@ namespace MAStrategyApp
                                         + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
                                     string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
-                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS");
+                                    string jsonObj = JSONSerializedTrade(trade, ticker, "STOP_LOSS.txt");
 
-                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                                    string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + trade.tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
 
                                     new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications);
 
@@ -791,7 +791,7 @@ namespace MAStrategyApp
         private static List<TradeObject> GetActiveTrades(string connectionString)
         {
             log.Info("Получаю список активных сделок");
-            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype, target1Value, target2Value, stopLoss1Value, stopLoss2Value, target1ClosePrice, target2ClosePrice, target1CloseDT, target2CloseDT, target1CloseCause, target2CloseCause, trade_is_close_analytic, trade_is_close_communication from trades where (closecandleid is null or target2closedt is null) and stratname = '" + STRATEGY_NAME + "'";
+            string sqlCommand = "select tradeId,tradeType,stratName,openCandleId,openCandleDt,figi,tradeStartDt,openTradePrice, maxTradePrice, minTradePrice,maxtradepricecandleid,maxtradepricecandledt,mintradepricecandleid,mintradepricecandledt,calculatetype, target1Value, target2Value, stopLoss1Value, stopLoss2Value, target1ClosePrice, target2ClosePrice, target1CloseDT, target2CloseDT, target1CloseCause, target2CloseCause, trade_is_close_analytic, trade_is_close_communication  from trades where (closecandleid is null or target2closedt is null) and stratname = '" + STRATEGY_NAME + "'";
             List<string> tradesStrings = new PgExecuter(connectionString, log).ExecuteReader(sqlCommand);
             List<TradeObject> tradeObjectList = new List<TradeObject>();
             foreach (var str in tradesStrings)
@@ -818,6 +818,7 @@ namespace MAStrategyApp
                 tradeObject.target2Value = float.Parse(partsOfRow[16]);
                 tradeObject.stopLoss1Value = float.Parse(partsOfRow[17]);
                 tradeObject.stopLoss2Value = float.Parse(partsOfRow[18]);  
+                
                 
                 if (partsOfRow[19].Length>0)
                     tradeObject.target1ClosePrice = float.Parse(partsOfRow[19]);

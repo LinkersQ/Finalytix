@@ -27,7 +27,7 @@ namespace FinInvestLibrary.Objects.Trade
         private int _mintradepricecandleid;
         private DateTime _mintradepricecandledt;
         
-        private TimeSpan _tradeDuration;
+        private float _tradeDuration;
         //--15.03.2023
         private string _calculatetype;
 
@@ -70,7 +70,7 @@ namespace FinInvestLibrary.Objects.Trade
         public float closeTradePrice { get { return _closeTradePrice; } set { _closeTradePrice = value; } }
         public float maxTradePrice { get { return _maxTradePrice; } set { _maxTradePrice = value; } }
         public float minTradePrice { get { return _minTradePrice; } set { _minTradePrice = value; } }
-        public TimeSpan tradeDuration { get { return _tradeDuration; } set { _tradeDuration = value; } }
+        public float tradeDuration { get { return _tradeDuration; } set { _tradeDuration = value; } }
         //--15.03.2023
         public string calculatetype { get { return _calculatetype; } set { _calculatetype = value; } }
 

@@ -3,7 +3,7 @@ using Npgsql;
 using System;
 using System.Collections.Generic;
 
-namespace FinInvestLibrary.Functions.LocalOperations
+namespace FinGrowPointPublisherAPP.DataFunctions
 {
     public class PgExecuter
     {

@@ -1,12 +1,13 @@
 ﻿#%TIKER%
 
-*Сделка*
-%TRADE_TYPE%📈
-Тикер: #%TIKER%
+%TRADE_TYPE%
+
+Сделка открыта
+
 Вход: %OPEN_PRICE%
 Стоп: %STOP_LOSS_PRICE%
-Профит: %PROFIT_1% >> %PROFIT_2%
+Профит: %PROFIT_1_PRICE% >> %PROFIT_2_PRICE%
 
 Ориентир длительности сделки: %TRADE_DURATION% дней
 
-ID сделки: #a3b614a7dfe240adb2992321e27cd1ef
+ID сделки: #%TRADE_ID%
