@@ -99,6 +99,7 @@ namespace FinGrowPointPublisherAPP.DataFunctions
             {
                 log.Error("Не удалось выполнить инструкцию");
                 log.Error(ex.ToString());
+                log.Error(SQLCommand);
             }
             DateTime executeFinishDT = DateTime.Now.ToUniversalTime();
             log.Debug("Инструкция успешно выполнена");

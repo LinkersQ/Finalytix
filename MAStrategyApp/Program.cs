@@ -31,7 +31,7 @@ namespace MAStrategyApp
             try
             {
 #if DEBUG
-                runType = "trade_open_point";
+                runType = "trade_close_point_trades_for_channel";
                 strategyName = "MA_12/26";
                 scaleName = "1_day_scale";
 #else
@@ -289,22 +289,24 @@ namespace MAStrategyApp
                 , strat_name = tradeObject.stratName
                 , trade_type = tradeObject.tradeType
                 , open_price = tradeObject.openTradePrice.ToString()
-                , target_price_1 = tradeObject.stratName.Equals("LONG") ?
+                , target_price_1 = tradeObject.tradeType.Equals("LONG") ?
                             (tradeObject.openTradePrice + (tradeObject.target1Value * tradeObject.openTradePrice)).ToString()
                                 : (tradeObject.openTradePrice - (tradeObject.target1Value * tradeObject.openTradePrice)).ToString()
                 , target_perc_1 = (tradeObject.target1Value * 100).ToString()
-                , target_price_2 = tradeObject.stratName.Equals("LONG") ?
+                , target_price_2 = tradeObject.tradeType.Equals("LONG") ?
                             (tradeObject.openTradePrice + (tradeObject.target2Value * tradeObject.openTradePrice)).ToString()
                                 : (tradeObject.openTradePrice - (tradeObject.target2Value * tradeObject.openTradePrice)).ToString()
                 , target_perc_2 = (tradeObject.target2Value * 100).ToString()
-                , stop_loss_price = tradeObject.stratName.Equals("LONG") ?
+                , stop_loss_price = tradeObject.tradeType.Equals("LONG") ?
                             (tradeObject.openTradePrice + (tradeObject.stopLoss1Value * tradeObject.openTradePrice)).ToString()
                             : (tradeObject.openTradePrice - (tradeObject.stopLoss1Value * tradeObject.openTradePrice)).ToString()
-                , stop_loss_perc = (tradeObject.stopLoss1Value * 100).ToString()
+                , stop_loss_perc = tradeObject.target1CloseCause.Equals("STOP_LOSS") ? (tradeObject.stopLoss1Value * 100).ToString() : (tradeObject.stopLoss2Value * 100).ToString()
                 , trade_dur_forecast = tradeObject.tradeDuration.ToString()
                 , communication_channel = "Telegram".ToUpper()
                 , channel_id = channel_id
                 , message_template_name = template_id
+                , stop_loss_price_for_profit_2 = tradeObject.openTradePrice.ToString()
+                           
             };
             string jsonObj = JsonConvert.SerializeObject(obj);
             return jsonObj;
@@ -620,6 +622,7 @@ namespace MAStrategyApp
                                     trade.target2CloseDT = candle.candleOpenDt;
                                     trade.target2CloseCause = "STOPLOSS_2";
                                     trade.trade_is_close_communication = true;
+                                    
 
                                     string sqlCommand = "UPDATE public.trades t SET target2ClosePrice = " + trade.target2ClosePrice.ToString().Replace(',', '.')
                                         + ", target2CloseDT = '" + trade.target2CloseDT.ToString()

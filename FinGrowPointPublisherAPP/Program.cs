@@ -12,6 +12,7 @@ using FinGrowPointPublisherAPP.DataFunctions;
 using FinGrowPointPublisherAPP.Objects;
 using System.Security.Cryptography.X509Certificates;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace FinGrowPointPublisherAPP
 {
@@ -37,57 +38,73 @@ namespace FinGrowPointPublisherAPP
             {
                 ITelegramBotClient bot = new TelegramBotClient(TG_BOT_TOKEN);
                 GetAppConfiguration(ref CONNECTION_STRING);
-                log.Info("Получаю список новых сообщений для отправки:");
-                var commList = GetNewCommunications();
-                log.Info("Найдено " + commList.Count + " новых сообщений для отправки");
 
-                log.Info("Готовлючь к отправке сообщений");
-                var messages = GetMessagesFromJSON(commList);
-                var templateList = GetTemplateListWithTags(messages);
 
-                foreach (var mes in templateList)
+                while (1 == 1)
                 {
-                    SendTradeMessage(bot, mes.final_message, long.Parse(mes.channel_id));
-                    Thread.Sleep(2000);
+                    log.Info("Получаю список новых сообщений для отправки:");
+                    var commList = GetNewCommunications();
+                    log.Info("Найдено " + commList.Count + " новых сообщений для отправки");
+
+                    log.Info("Готовлючь к отправке сообщений");
+                    var messages = GetMessagesFromJSON(commList);
+                    var templateList = GetTemplateListWithTags(messages);
+                    log.Info("Сформировано " + templateList.Count + " новых шаблонов для отправки");
+
+                    if (templateList.Count > 0)
+                    {
+                        foreach (var mes in templateList)
+                        {
+                            Thread.Sleep(5000);
+                            var commObj = commList.FirstOrDefault(f => f.external_id.Equals(mes.trade_id));
+                            SendTradeMessage(bot, mes.final_message, long.Parse(mes.channel_id), commObj.id);
+
+                        }
+                    }
+                    else
+                    {
+                        log.Info("Нет новых сообщений и шаблонов");
+                    }
+                    Thread.Sleep(5000);
+                    bot.CloseAsync();
                 }
 
-
-
-
-
-
-                var cts = new CancellationTokenSource();
-                var cancellationToken = cts.Token;
-                var receiverOptions = new ReceiverOptions
-                {
-                    AllowedUpdates = { }, // receive all update types
-                };
-                bot.StartReceiving(
-                    HandleUpdateAsync,
-                    HandleErrorAsync,
-                    receiverOptions,
-                    cancellationToken
-                );
-                Console.ReadLine();
             }
             else
             {
                 log.Error("В процессе конфигурирования приложения возникла ошибка. Приложение завершено.");
             }
         }
-
-        public static async void SendTradeMessage(ITelegramBotClient botClient, string template2Send, long channel_id)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="commId">Идентификатор коммуникационной строки в таблице</param>
+        /// <param name="communication_status">статус отправки коммуникации</param>
+        /// <param name="inform_mes">произвольная информация</param>
+        /// <param name="messId">идентификатор коммуникации, назначенный в канале коммуниации</param>
+        private static void UpdateCommunicationRow(string commId,string communication_status, string inform_mes, string messId)
         {
+            string sqlCommand = "UPDATE public.communications SET communication_dt = '" + DateTime.Now.ToString() + "', communication_status = '" + communication_status + "', inform_messages = '" + inform_mes + "', communication_id_from_channel = '" + messId + "' where id = '" + commId + "'";
+
+            new PgExecuter(CONNECTION_STRING, log).ExecuteNonQuery(sqlCommand);
+        }
+
+        public static async void SendTradeMessage(ITelegramBotClient botClient, string template2Send, long channel_id, string communicationId)
+        {
+            
             try
             {
                 Message mes = new Message();
                 mes.Chat = new Chat { Id = channel_id, };
+                UpdateCommunicationRow(communicationId, "DONE", "ALL OK", "");
                 var res = await botClient.SendTextMessageAsync(mes.Chat, template2Send);
-                Console.WriteLine(res.MessageId + " - " + res.Text);
+                UpdateCommunicationRow(communicationId, "DONE", "ALL OK", res.MessageId.ToString());
+
             }
             catch (Exception ex) 
             {
                 log.Error($"Error {ex.Message}");
+                UpdateCommunicationRow(communicationId, "ERROR", ex.ToString(), "");
             }
         }
 
@@ -107,6 +124,10 @@ namespace FinGrowPointPublisherAPP
                 templateTXT = templateTXT.Replace("%PROFIT_2_PRICE%", message.target_price_2);
                 templateTXT = templateTXT.Replace("%TRADE_DURATION%", message.trade_dur_forecast);
                 templateTXT = templateTXT.Replace("%TRADE_ID%", message.trade_id);
+                templateTXT = templateTXT.Replace("%TRADE_RESULT%", message.stop_loss_perc);
+               
+                templateTXT = templateTXT.Replace("%PROFIT_2_PERC%", message.target_perc_2);
+                templateTXT = templateTXT.Replace("%STOP_LOSS_PRICE_FOR_PROFIT_2%", message.stop_loss_price_for_profit_2);
                 message.final_message = templateTXT;
                 result.Add(message);
 
@@ -129,7 +150,7 @@ namespace FinGrowPointPublisherAPP
 
         static List<CommunicationObject> GetNewCommunications()
         {
-            var communicationsStrings = new PgExecuter(CONNECTION_STRING, log).ExecuteReader("SELECT id, external_id, create_dt, message_content, message_media, communication_dt, communication_status, inform_messages, communication_id_from_channel FROM public.communications ORDER BY create_dt");
+            var communicationsStrings = new PgExecuter(CONNECTION_STRING, log).ExecuteReader("SELECT id, external_id, create_dt, message_content, message_media, communication_dt, communication_status, inform_messages, communication_id_from_channel FROM public.communications WHERE communication_status is null or communication_status = 'ERROR' ORDER BY create_dt");
 
             List<CommunicationObject> communicationObjectList = new List<CommunicationObject>();
             foreach (var str in communicationsStrings)
@@ -142,7 +163,7 @@ namespace FinGrowPointPublisherAPP
                 commObject.create_dt = Convert.ToDateTime(partsOfRow[2]);
                 commObject.message_content = partsOfRow[3].ToString();
                 commObject.message_media = partsOfRow[4];
-                commObject.communication_dt = partsOfRow[5].Length > 5 ? Convert.ToDateTime(partsOfRow[7]) : Convert.ToDateTime("2000-01-01 00:00:00");
+                commObject.communication_dt = partsOfRow[5].Length > 5 ? Convert.ToDateTime(partsOfRow[5]) : Convert.ToDateTime("2000-01-01 00:00:00");
                 commObject.communication_status = partsOfRow[6];
                 commObject.inform_messages = partsOfRow[7];
                 commObject.communication_id_from_channel = partsOfRow[8];

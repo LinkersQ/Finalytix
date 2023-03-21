@@ -25,6 +25,7 @@ namespace FinGrowPointPublisherAPP.Objects
         private string _channel_id;
         private string _message_template_name;
         private string _final_message;
+        private string _stop_loss_price_for_profit_2;
 
 
         public string trade_id { get { return _trade_id; } set { _trade_id = value; } }
@@ -45,5 +46,8 @@ namespace FinGrowPointPublisherAPP.Objects
         public string channel_id { get { return _channel_id; } set { _channel_id = value; } }
         public string message_template_name { get { return _message_template_name; } set { _message_template_name = value; } }
         public string final_message { get { return _final_message; } set { _final_message = value; } }
+        public string stop_loss_price_for_profit_2 { get { return _stop_loss_price_for_profit_2; } set { _stop_loss_price_for_profit_2 = value; } }
+
+
     }
 }
