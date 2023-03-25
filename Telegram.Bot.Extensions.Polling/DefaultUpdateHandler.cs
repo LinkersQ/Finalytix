@@ -1,7 +1,7 @@
-﻿using System;
+﻿using JetBrains.Annotations;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Telegram.Bot.Types;
 
 namespace Telegram.Bot.Extensions.Polling;
@@ -12,8 +12,8 @@ namespace Telegram.Bot.Extensions.Polling;
 [PublicAPI]
 public class DefaultUpdateHandler : IUpdateHandler
 {
-    readonly Func<ITelegramBotClient, Update, CancellationToken, Task> _updateHandler;
-    readonly Func<ITelegramBotClient, Exception, CancellationToken, Task> _errorHandler;
+    private readonly Func<ITelegramBotClient, Update, CancellationToken, Task> _updateHandler;
+    private readonly Func<ITelegramBotClient, Exception, CancellationToken, Task> _errorHandler;
 
     /// <summary>
     /// Constructs a new <see cref="DefaultUpdateHandler"/> with the specified callback functions

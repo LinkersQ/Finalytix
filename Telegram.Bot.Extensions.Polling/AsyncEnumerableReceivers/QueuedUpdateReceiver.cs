@@ -1,11 +1,11 @@
 ﻿#if NETCOREAPP3_1_OR_GREATER
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Telegram.Bot.Extensions.Polling.Extensions;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types;
@@ -21,12 +21,11 @@ namespace Telegram.Bot.Extensions.Polling;
 [PublicAPI]
 public class QueuedUpdateReceiver : IAsyncEnumerable<Update>
 {
-    readonly ITelegramBotClient _botClient;
-    readonly ReceiverOptions? _receiverOptions;
-    readonly Func<Exception, CancellationToken, Task>? _errorHandler;
-
-    int _inProcess;
-    Enumerator? _enumerator;
+    private readonly ITelegramBotClient _botClient;
+    private readonly ReceiverOptions? _receiverOptions;
+    private readonly Func<Exception, CancellationToken, Task>? _errorHandler;
+    private int _inProcess;
+    private Enumerator? _enumerator;
 
     /// <summary>
     /// Constructs a new <see cref="QueuedUpdateReceiver"/> for the specified <see cref="ITelegramBotClient"/>
@@ -69,21 +68,18 @@ public class QueuedUpdateReceiver : IAsyncEnumerable<Update>
         return _enumerator;
     }
 
-    class Enumerator : IAsyncEnumerator<Update>
+    private class Enumerator : IAsyncEnumerator<Update>
     {
-        readonly QueuedUpdateReceiver _receiver;
-        readonly CancellationTokenSource _cts;
-        readonly CancellationToken _token;
-        readonly UpdateType[]? _allowedUpdates;
-        readonly int? _limit;
-
-        Exception? _uncaughtException;
-
-        readonly Channel<Update> _channel;
-        Update? _current;
-
-        int _pendingUpdates;
-        int _messageOffset;
+        private readonly QueuedUpdateReceiver _receiver;
+        private readonly CancellationTokenSource _cts;
+        private readonly CancellationToken _token;
+        private readonly UpdateType[]? _allowedUpdates;
+        private readonly int? _limit;
+        private Exception? _uncaughtException;
+        private readonly Channel<Update> _channel;
+        private Update? _current;
+        private int _pendingUpdates;
+        private int _messageOffset;
 
         public int PendingUpdates => _pendingUpdates;
 
@@ -122,14 +118,14 @@ public class QueuedUpdateReceiver : IAsyncEnumerable<Update>
             return new(ReadAsync());
         }
 
-        async Task<bool> ReadAsync()
+        private async Task<bool> ReadAsync()
         {
             _current = await _channel.Reader.ReadAsync(_token);
             Interlocked.Decrement(ref _pendingUpdates);
             return true;
         }
 
-        async Task ReceiveUpdatesAsync()
+        private async Task ReceiveUpdatesAsync()
         {
             if (_receiver._receiverOptions?.ThrowPendingUpdates is true)
             {

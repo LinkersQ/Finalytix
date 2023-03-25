@@ -46,7 +46,7 @@ namespace FinInvestLibrary.Objects
 
         private int _lastCandleIdForStrategy;
         private List<CandleForSMAStratAnalysis> _candleForSMAStratAnalysisList;
-        private List<TradeObject> _tradeObjects;    
+        private List<TradeObject> _tradeObjects;
 
         public string figi { get { return _figi; } set { _figi = value; } }
         public string ticker { get { return _ticker; } set { _ticker = value; } }
@@ -90,8 +90,8 @@ namespace FinInvestLibrary.Objects
 
         public int LastCandleIdForStrategy { get { return _lastCandleIdForStrategy; } set { _lastCandleIdForStrategy = value; } }
 
-        public List<CandleForSMAStratAnalysis> candleForSMAStratAnalysisList { get { return _candleForSMAStratAnalysisList; } set { _candleForSMAStratAnalysisList = value;} }
-        
+        public List<CandleForSMAStratAnalysis> candleForSMAStratAnalysisList { get { return _candleForSMAStratAnalysisList; } set { _candleForSMAStratAnalysisList = value; } }
+
         public List<TradeObject> tradeObjects { get { return _tradeObjects; } set { _tradeObjects = value; } }
     }
 }

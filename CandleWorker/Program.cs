@@ -8,7 +8,8 @@ namespace CandleWorker
     internal class Program
     {
         public static readonly ILog log = LogManager.GetLogger(typeof(Program));
-        static int Main(string[] args)
+
+        private static int Main(string[] args)
         {
             int exitCode = 9999;
 

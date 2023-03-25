@@ -1,5 +1,5 @@
-using System;
 using JetBrains.Annotations;
+using System;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -12,7 +12,7 @@ namespace Telegram.Bot.Extensions.Polling;
 [PublicAPI]
 public sealed class ReceiverOptions
 {
-    int? _limit;
+    private int? _limit;
 
     /// <summary>
     /// Identifier of the first update to be returned. Will be ignored if

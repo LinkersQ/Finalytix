@@ -7,9 +7,7 @@ namespace ParseCandles
 {
     internal class Program
     {
-
-
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             string parrentPath = "D:\\Data";
             string pendingPath = parrentPath + "\\Pending";

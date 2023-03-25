@@ -5,9 +5,9 @@ namespace FinInvestLibrary.Functions.LocalOperations
 {
     public class PgExecuter
     {
-        string connectionString = string.Empty;
-        NpgsqlConnection connection = null;
-        ILog log = null;
+        private string connectionString = string.Empty;
+        private NpgsqlConnection connection = null;
+        private ILog log = null;
         /// <summary>
         /// Инцициализация класса
         /// </summary>
@@ -44,7 +44,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 using var command = new NpgsqlCommand(SQLCommand, connection);
                 command.CommandTimeout = 600;
                 command.ExecuteNonQuery();
-                
+
                 result = true;
             }
             catch (Exception ex)
@@ -62,7 +62,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
         }
 
         public string ExecuteScalarQuery(string SQLCommand)
-        { 
+        {
             string returnStr = string.Empty;
 
             log.Debug("Подключаюсь к БД...");
@@ -91,7 +91,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 var res = command.ExecuteScalar();
                 returnStr = res.ToString();
                 connection.Close();
-                
+
             }
             catch (Exception ex)
             {
@@ -102,10 +102,10 @@ namespace FinInvestLibrary.Functions.LocalOperations
             log.Debug("Инструкция успешно выполнена");
             log.Debug("Время выполнения: " + (executeFinishDT - executeStartDT).TotalSeconds + " секунд.");
             return returnStr;
-        
+
         }
 
-        public List<string> ExecuteReader(string SQLCommand) 
+        public List<string> ExecuteReader(string SQLCommand)
         {
             List<string> returnListString = new List<string>();
             log.Debug("Подключаюсь к БД...");
@@ -133,7 +133,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 while (reader.Read())
                 {
                     string row = string.Empty;
-                    for (int i = 0; i < reader.FieldCount; i++) 
+                    for (int i = 0; i < reader.FieldCount; i++)
                     {
                         row = row + reader[i].ToString();
                         if (i != reader.FieldCount)

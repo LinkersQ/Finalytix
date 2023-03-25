@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FinInvestLibrary.Objects.Trade
+﻿namespace FinInvestLibrary.Objects.Trade
 {
     public class TradeObject
     {
@@ -26,7 +20,7 @@ namespace FinInvestLibrary.Objects.Trade
         private float _minTradePrice; // минимальная цена актива в сделке
         private int _mintradepricecandleid;
         private DateTime _mintradepricecandledt;
-        
+
         private float _tradeDuration;
         //--15.03.2023
         private string _calculatetype;
@@ -49,7 +43,7 @@ namespace FinInvestLibrary.Objects.Trade
         private bool _trade_is_close_analytic; //статус сделки для аналитической логики
         private bool _trade_is_close_communication; //статус сделки для публикуемых сделок
 
-      
+
 
         public int maxtradepricecandleid { get { return _maxtradepricecandleid; } set { _maxtradepricecandleid = value; } }
         public DateTime maxtradepricecandledt { get { return _maxtradepricecandledt; } set { _maxtradepricecandledt = value; } }

@@ -8,7 +8,7 @@ namespace TCSStreamReader
 {
     internal class TCSStreamReaderClass
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             var token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
 
@@ -30,14 +30,14 @@ namespace TCSStreamReader
             var c = TakeSubscribeToTrades(stream);
 
             var instr = new CandleInstrument[1];
-            
+
 
 
 
 
             while (1 == 1)
-            { 
-            
+            {
+
             }
 
             Console.WriteLine("Завершено");
@@ -49,11 +49,11 @@ namespace TCSStreamReader
             var instrs = new TradeInstrument[1];
             instrs[0] = new TradeInstrument { Figi = "BBG004730N88" };
             var req = new SubscribeTradesRequest();
-            req.SubscriptionAction= SubscriptionAction.Subscribe;
+            req.SubscriptionAction = SubscriptionAction.Subscribe;
             req.Instruments.AddRange(instrs);
             Console.WriteLine(req.Instruments.Count);
 
-           // await stream.RequestStream.WriteAsync();
+            // await stream.RequestStream.WriteAsync();
         }
 
 

@@ -1,7 +1,7 @@
+using JetBrains.Annotations;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Telegram.Bot.Extensions.Polling.Extensions;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types;
@@ -14,10 +14,9 @@ namespace Telegram.Bot.Extensions.Polling;
 [PublicAPI]
 public class DefaultUpdateReceiver : IUpdateReceiver
 {
-    static readonly Update[] EmptyUpdates = Array.Empty<Update>();
-
-    readonly ITelegramBotClient _botClient;
-    readonly ReceiverOptions? _receiverOptions;
+    private static readonly Update[] EmptyUpdates = Array.Empty<Update>();
+    private readonly ITelegramBotClient _botClient;
+    private readonly ReceiverOptions? _receiverOptions;
 
     /// <summary>
     /// Constructs a new <see cref="DefaultUpdateReceiver"/> with the specified <see cref="ITelegramBotClient"/>>
@@ -61,7 +60,7 @@ public class DefaultUpdateReceiver : IUpdateReceiver
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            var timeout = (int) _botClient.Timeout.TotalSeconds;
+            var timeout = (int)_botClient.Timeout.TotalSeconds;
             var updates = emptyUpdates;
             try
             {

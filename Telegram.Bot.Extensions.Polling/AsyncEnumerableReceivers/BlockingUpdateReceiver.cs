@@ -1,9 +1,9 @@
 ﻿#if NETCOREAPP3_1_OR_GREATER
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Telegram.Bot.Extensions.Polling.Extensions;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types;
@@ -17,11 +17,10 @@ namespace Telegram.Bot.Extensions.Polling;
 [PublicAPI]
 public class BlockingUpdateReceiver : IAsyncEnumerable<Update>
 {
-    readonly ReceiverOptions? _receiverOptions;
-    readonly ITelegramBotClient _botClient;
-    readonly Func<Exception, CancellationToken, Task>? _errorHandler;
-
-    int _inProcess;
+    private readonly ReceiverOptions? _receiverOptions;
+    private readonly ITelegramBotClient _botClient;
+    private readonly Func<Exception, CancellationToken, Task>? _errorHandler;
+    private int _inProcess;
 
     /// <summary>
     /// Constructs a new <see cref="BlockingUpdateReceiver"/> for the specified <see cref="ITelegramBotClient"/>
@@ -57,18 +56,17 @@ public class BlockingUpdateReceiver : IAsyncEnumerable<Update>
         return new Enumerator(receiver: this, cancellationToken: cancellationToken);
     }
 
-    class Enumerator : IAsyncEnumerator<Update>
+    private class Enumerator : IAsyncEnumerator<Update>
     {
-        readonly BlockingUpdateReceiver _receiver;
-        readonly CancellationTokenSource _cts;
-        readonly CancellationToken _token;
-        readonly UpdateType[]? _allowedUpdates;
-        readonly int? _limit;
-
-        Update[] _updateArray = Array.Empty<Update>();
-        int _updateIndex;
-        int _messageOffset;
-        bool _updatesThrown;
+        private readonly BlockingUpdateReceiver _receiver;
+        private readonly CancellationTokenSource _cts;
+        private readonly CancellationToken _token;
+        private readonly UpdateType[]? _allowedUpdates;
+        private readonly int? _limit;
+        private Update[] _updateArray = Array.Empty<Update>();
+        private int _updateIndex;
+        private int _messageOffset;
+        private bool _updatesThrown;
 
         public Enumerator(BlockingUpdateReceiver receiver, CancellationToken cancellationToken)
         {
@@ -91,7 +89,7 @@ public class BlockingUpdateReceiver : IAsyncEnumerable<Update>
                 : new(ReceiveUpdatesAsync());
         }
 
-        async Task<bool> ReceiveUpdatesAsync()
+        private async Task<bool> ReceiveUpdatesAsync()
         {
             var shouldThrowPendingUpdates = (
                 _updatesThrown,
@@ -128,7 +126,7 @@ public class BlockingUpdateReceiver : IAsyncEnumerable<Update>
                             request: new GetUpdatesRequest
                             {
                                 Offset = _messageOffset,
-                                Timeout = (int) _receiver._botClient.Timeout.TotalSeconds,
+                                Timeout = (int)_receiver._botClient.Timeout.TotalSeconds,
                                 Limit = _limit,
                                 AllowedUpdates = _allowedUpdates,
                             },

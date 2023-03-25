@@ -28,6 +28,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 request.Interval = CandleInterval._15Min;
                 request.InstrumentId = share.uid;
                 candlesRequests.Add(request);
+                Thread.Sleep(2000);
             }
 
             return candlesRequests;

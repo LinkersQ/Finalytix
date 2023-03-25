@@ -5,10 +5,11 @@ using Tinkoff.InvestApi.V1;
 
 namespace GetWarmCandles
 {
-    static class Program
+    internal static class Program
     {
         public static readonly ILog log = LogManager.GetLogger(typeof(Program));
-        static void Main(string[] args)
+
+        private static void Main(string[] args)
         {
             log4net.Config.XmlConfigurator.Configure();
             log.Info("---Start---");
@@ -17,7 +18,7 @@ namespace GetWarmCandles
 
                 //string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
                 //string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
-                int requestTimeOutInterval = 200; //для ограничений кол-ва запросов к тинькофф апи
+                int requestTimeOutInterval = 600; //для ограничений кол-ва запросов к тинькофф апи
                 DateTime currentDateTime = DateTime.UtcNow; //Tinkoff API работает всегда в UTC - придерживаемся тоже UTC;
                 int searchPeriod = 24;//глубина поиска при запросе свечей
                 string appPath = Environment.CurrentDirectory;
@@ -39,7 +40,7 @@ namespace GetWarmCandles
 
 
                 //Теперь формируем запрос GetCandlesRequest для каждого инструментафо
-                List<GetCandlesRequest> requests = GetRequests(currentDateTime, searchPeriod, tinkoffInvestApiFunctions, shares);
+                List<GetCandlesRequest> requests = GetRequests(currentDateTime, searchPeriod, tinkoffInvestApiFunctions, shares.Where(w => w.country_of_risk.Equals("RU")).ToList());
 
                 #endregion
                 #region Получаем свечи от тинькофф и записываем в таблицу

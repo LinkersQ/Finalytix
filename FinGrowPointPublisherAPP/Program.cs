@@ -1,34 +1,29 @@
-﻿using System;
+﻿using FinGrowPointPublisherAPP.DataFunctions;
+using FinGrowPointPublisherAPP.Objects;
+using log4net;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
-using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types;
-using Telegram.Bot.Exceptions;
-using System.IO;
-using log4net;
-using System.Collections.Generic;
-using FinGrowPointPublisherAPP.DataFunctions;
-using FinGrowPointPublisherAPP.Objects;
-using System.Security.Cryptography.X509Certificates;
-using Newtonsoft.Json;
-using System.Linq;
 
 namespace FinGrowPointPublisherAPP
 {
-    class Program
+    internal class Program
     {
 
         public static readonly ILog log = LogManager.GetLogger(typeof(Program));
-        static string TG_BOT_TOKEN = string.Empty;
-        static long TG_CHANNEL_ID = -1;
-        static string OPEN_TRADE_TEMPLATE = string.Empty;
-        static string CLOSE_TRADE_TEMPLATE = string.Empty;
-        static string CONNECTION_STRING = string.Empty;
-        static string TEMPLATES_PATH = string.Empty;
+        private static string TG_BOT_TOKEN = string.Empty;
+        private static long TG_CHANNEL_ID = -1;
+        private static string OPEN_TRADE_TEMPLATE = string.Empty;
+        private static string CLOSE_TRADE_TEMPLATE = string.Empty;
+        private static string CONNECTION_STRING = string.Empty;
+        private static string TEMPLATES_PATH = string.Empty;
 
-
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             log4net.Config.XmlConfigurator.Configure();
             log.Info(@"/---------Start---------\");
@@ -82,7 +77,7 @@ namespace FinGrowPointPublisherAPP
         /// <param name="communication_status">статус отправки коммуникации</param>
         /// <param name="inform_mes">произвольная информация</param>
         /// <param name="messId">идентификатор коммуникации, назначенный в канале коммуниации</param>
-        private static void UpdateCommunicationRow(string commId,string communication_status, string inform_mes, string messId)
+        private static void UpdateCommunicationRow(string commId, string communication_status, string inform_mes, string messId)
         {
             string sqlCommand = "UPDATE public.communications SET communication_dt = '" + DateTime.Now.ToString() + "', communication_status = '" + communication_status + "', inform_messages = '" + inform_mes + "', communication_id_from_channel = '" + messId + "' where id = '" + commId + "'";
 
@@ -91,7 +86,7 @@ namespace FinGrowPointPublisherAPP
 
         public static async void SendTradeMessage(ITelegramBotClient botClient, string template2Send, long channel_id, string communicationId)
         {
-            
+
             try
             {
                 Message mes = new Message();
@@ -101,7 +96,7 @@ namespace FinGrowPointPublisherAPP
                 UpdateCommunicationRow(communicationId, "DONE", "ALL OK", res.MessageId.ToString());
 
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 log.Error($"Error {ex.Message}");
                 UpdateCommunicationRow(communicationId, "ERROR", ex.ToString(), "");
@@ -111,7 +106,7 @@ namespace FinGrowPointPublisherAPP
 
         private static List<MessageContent> GetTemplateListWithTags(List<MessageContent> messages)
         {
-            List<MessageContent> result = new List<MessageContent>();   
+            List<MessageContent> result = new List<MessageContent>();
             foreach (var message in messages)
             {
                 string templateTXT = System.IO.File.ReadAllText(TEMPLATES_PATH + "\\" + message.message_template_name);
@@ -125,7 +120,7 @@ namespace FinGrowPointPublisherAPP
                 templateTXT = templateTXT.Replace("%TRADE_DURATION%", message.trade_dur_forecast);
                 templateTXT = templateTXT.Replace("%TRADE_ID%", message.trade_id);
                 templateTXT = templateTXT.Replace("%TRADE_RESULT%", message.stop_loss_perc);
-               
+
                 templateTXT = templateTXT.Replace("%PROFIT_2_PERC%", message.target_perc_2);
                 templateTXT = templateTXT.Replace("%STOP_LOSS_PRICE_FOR_PROFIT_2%", message.stop_loss_price_for_profit_2);
                 message.final_message = templateTXT;
@@ -142,13 +137,13 @@ namespace FinGrowPointPublisherAPP
             {
                 var obj = JsonConvert.DeserializeObject<MessageContent>(comm.message_content);
                 messages.Add(obj);
-                
+
             }
             return messages;
 
         }
 
-        static List<CommunicationObject> GetNewCommunications()
+        private static List<CommunicationObject> GetNewCommunications()
         {
             var communicationsStrings = new PgExecuter(CONNECTION_STRING, log).ExecuteReader("SELECT id, external_id, create_dt, message_content, message_media, communication_dt, communication_status, inform_messages, communication_id_from_channel FROM public.communications WHERE communication_status is null or communication_status = 'ERROR' ORDER BY create_dt");
 
@@ -171,7 +166,7 @@ namespace FinGrowPointPublisherAPP
 
                 communicationObjectList.Add(commObject);
             }
-            
+
             return communicationObjectList;
         }
 
@@ -267,7 +262,7 @@ namespace FinGrowPointPublisherAPP
         }
 
 
-        
+
 
         private static bool GetAppConfiguration(ref string TG_BOT_TOKEN, ref long TG_CHANNEL_ID)
         {
@@ -276,7 +271,7 @@ namespace FinGrowPointPublisherAPP
             {
                 //string token = "t.hrRraHICLaGVw1xOFtzsF2WZHQ5tFZ8G9M5AAlJd9e54Yhe3kkygVSfWVyk2IZGae_-ENntIv_pK_f7C4hqw8g";
                 //string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
-                
+
                 DateTime currentDateTime = DateTime.UtcNow; //Tinkoff API работает всегда в UTC - придерживаемся тоже UTC;
                 string appPath = Environment.CurrentDirectory;
                 //string OPEN_TRADE_TEMPLATE_Path = appPath + "\\Configurations\\Templates\\OPEN_TRADE_TEMPLATE.txt";
