@@ -254,21 +254,24 @@ namespace MAStrategyApp
                 log.Info("Сохраняю сделки по активу: " + shares[i].name + "(" + shares[i].figi + ")");
                 for (int ii = 0; ii < shares[i].tradeObjects.Count; ii++)
                 {
-                    //проверяем отсутсвие сделки с candle_id
-                    string dbTradesCountCommand = "select count(*) from public.trades where opencandleid = " + shares[i].tradeObjects[ii].openCandleId + " and tradetype = '" + shares[i].tradeObjects[ii].tradeType + "'";
-                    var dbTradesCountResult = new PgExecuter(connectionString, log).ExecuteScalarQuery(dbTradesCountCommand);
-                    //подготавливаем данные для записи в БД
-                    if (Convert.ToInt32(dbTradesCountResult) == 0)
+                    if (shares[i].tradeObjects[ii].openCandleDt.Day == DateTime.Now.Day)
                     {
-                        string sqlCommand_analysis = PrepareSaveTradeCommand(shares, i, ii, "for_analysis");
-                        string jsonObj = JSONSerializedTrade(shares[i].tradeObjects[ii], tradeTargetObjects.FirstOrDefault(f => f.figi.Equals(shares[i].tradeObjects[ii].figi)).ticker.ToString(), "OPEN_TRADE.txt");
+                        //проверяем отсутсвие сделки с candle_id
+                        string dbTradesCountCommand = "select count(*) from public.trades where opencandleid = " + shares[i].tradeObjects[ii].openCandleId + " and tradetype = '" + shares[i].tradeObjects[ii].tradeType + "'";
+                        var dbTradesCountResult = new PgExecuter(connectionString, log).ExecuteScalarQuery(dbTradesCountCommand);
+                        //подготавливаем данные для записи в БД
+                        if (Convert.ToInt32(dbTradesCountResult) == 0)
+                        {
+                            string sqlCommand_analysis = PrepareSaveTradeCommand(shares, i, ii, "for_analysis");
+                            string jsonObj = JSONSerializedTrade(shares[i].tradeObjects[ii], tradeTargetObjects.FirstOrDefault(f => f.figi.Equals(shares[i].tradeObjects[ii].figi)).ticker.ToString(), "OPEN_TRADE.txt");
 
-                        //сохраняем информацию о сделках в БД
-                        string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + shares[i].tradeObjects[ii].tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
-                        new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_analysis); //таблица сделок для аналитики
-                        new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications); //сделки для каналов коммуникации
+                            //сохраняем информацию о сделках в БД
+                            string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + shares[i].tradeObjects[ii].tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
+                            new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_analysis); //таблица сделок для аналитики
+                            new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand_Communications); //сделки для каналов коммуникации
 
-                        tradesCount++;
+                            tradesCount++;
+                        }
                     }
                 }
                 if (shares[i].candleForSMAStratAnalysisList.Count > 0)
