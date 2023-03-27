@@ -254,7 +254,7 @@ namespace MAStrategyApp
                 log.Info("Сохраняю сделки по активу: " + shares[i].name + "(" + shares[i].figi + ")");
                 for (int ii = 0; ii < shares[i].tradeObjects.Count; ii++)
                 {
-                    if (shares[i].tradeObjects[ii].openCandleDt.Day == DateTime.Now.Day)
+                    if (shares[i].tradeObjects[ii].openCandleDt.ToString("yyyy-MM-dd") == DateTime.Now.Day.ToString("yyyy-MM-dd"))
                     {
                         //проверяем отсутсвие сделки с candle_id
                         string dbTradesCountCommand = "select count(*) from public.trades where opencandleid = " + shares[i].tradeObjects[ii].openCandleId + " and tradetype = '" + shares[i].tradeObjects[ii].tradeType + "'";
