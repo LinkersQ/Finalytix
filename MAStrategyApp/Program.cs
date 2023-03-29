@@ -12,6 +12,7 @@ namespace MAStrategyApp
         private static string FAST_INTERVAL = string.Empty;
         private static string SLOW_INTERVAL = string.Empty;
         private static string STRATEGY_NAME = string.Empty;
+        private static string TG_CHANNEL_ID = string.Empty;
 
         public static readonly ILog log = LogManager.GetLogger(typeof(Program));
 
@@ -21,7 +22,7 @@ namespace MAStrategyApp
             log.Info(@"/---------Start---------\");
 
             log.Info("Конфигурирую приложение");
-            string runType, strategyName, scaleName, connectionString;
+            string runType, strategyName, scaleName, connectionString, tg_channel_id;
             int exitCode = 9999;
             try
             {
@@ -29,10 +30,13 @@ namespace MAStrategyApp
                 runType = "trade_close_point_trades_for_channel";
                 strategyName = "MA_12/26";
                 scaleName = "1_day_scale";
+                tg_channel_id="";
+
 #else
                 runType = args[0];//"trade_close_point";//args[0];
                 strategyName = args[1]; //args[1]; //"MA_12/26";
                 scaleName = args[2];//args[2];
+                tg_channel_id= args[3];
 #endif
                 string appPath = Environment.CurrentDirectory;
                 string connectionStringPath = appPath + "\\connectionString.txt";
@@ -44,6 +48,7 @@ namespace MAStrategyApp
                 STRATEGY_NAME = strategyName;
                 FAST_INTERVAL = fastInterval;
                 SLOW_INTERVAL = slowInterval;
+                TG_CHANNEL_ID = tg_channel_id;
             }
             catch (Exception ex)
             {
@@ -263,7 +268,7 @@ namespace MAStrategyApp
                         if (Convert.ToInt32(dbTradesCountResult) == 0)
                         {
                             string sqlCommand_analysis = PrepareSaveTradeCommand(shares, i, ii, "for_analysis");
-                            string jsonObj = JSONSerializedTrade(shares[i].tradeObjects[ii], tradeTargetObjects.FirstOrDefault(f => f.figi.Equals(shares[i].tradeObjects[ii].figi)).ticker.ToString(), "OPEN_TRADE.txt");
+                            string jsonObj = JSONSerializedTrade(shares[i].tradeObjects[ii], tradeTargetObjects.FirstOrDefault(f => f.figi.Equals(shares[i].tradeObjects[ii].figi)).ticker.ToString(), "OPEN_TRADE.txt", TG_CHANNEL_ID);
 
                             //сохраняем информацию о сделках в БД
                             string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + shares[i].tradeObjects[ii].tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
@@ -291,10 +296,10 @@ namespace MAStrategyApp
 
 
 
-        private static string JSONSerializedTrade(TradeObject tradeObject, string ticker, string communicationTemplate)
+        private static string JSONSerializedTrade(TradeObject tradeObject, string ticker, string communicationTemplate, string tg_channel_id)
         {
 
-            string channel_id = tradeObject.stratName.Equals("MA_12/26") ? "-1001669467340" : "-1001906521615";
+            string channel_id = tg_channel_id;//tradeObject.stratName.Equals("MA_12/26") ? "-1001669467340" : "-1001906521615";
 
             string template_id = communicationTemplate;
 
