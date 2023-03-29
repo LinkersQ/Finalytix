@@ -115,6 +115,7 @@ namespace GetWarmCandles
             }
 
         }
+        
 
         private static List<GetCandlesRequest> GetRequests(DateTime currentDateTime, int searchPeriod, TinkoffInvestApiFunctions tinkoffInvestApiFunctions, List<ShareObject> shares)
         {

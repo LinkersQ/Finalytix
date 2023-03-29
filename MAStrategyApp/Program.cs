@@ -256,8 +256,8 @@ namespace MAStrategyApp
                 {
                     if (shares[i].tradeObjects[ii].openCandleDt.ToString("yyyy-MM-dd") == DateTime.Now.Day.ToString("yyyy-MM-dd"))
                     {
-                        //проверяем отсутсвие сделки с candle_id
-                        string dbTradesCountCommand = "select count(*) from public.trades where opencandleid = " + shares[i].tradeObjects[ii].openCandleId + " and tradetype = '" + shares[i].tradeObjects[ii].tradeType + "'";
+                        //проверяем отсутсвие сделки с candle_id равным candle_id уже готовой или на предмет наличия сделки с тем же направлением и по тому же figi и со статусом trade_is_close_communication = false
+                        string dbTradesCountCommand = "select count(*) from public.trades where (opencandleid = " + shares[i].tradeObjects[ii].openCandleId + " and tradetype = '" + shares[i].tradeObjects[ii].tradeType + "') or (figi = '" + shares[i].tradeObjects[ii].figi + "' and tradetype = '" + shares[i].tradeObjects[ii].tradeType + "' and trade_is_close_communication = false)";
                         var dbTradesCountResult = new PgExecuter(connectionString, log).ExecuteScalarQuery(dbTradesCountCommand);
                         //подготавливаем данные для записи в БД
                         if (Convert.ToInt32(dbTradesCountResult) == 0)
@@ -331,7 +331,7 @@ namespace MAStrategyApp
                             (tradeObject.openTradePrice + (tradeObject.stopLoss1Value * tradeObject.openTradePrice)).ToString()
                             : (tradeObject.openTradePrice - (tradeObject.stopLoss1Value * tradeObject.openTradePrice)).ToString()
                 ,
-                stop_loss_perc = tradeObject.target1CloseCause.Equals("STOP_LOSS") ? (tradeObject.stopLoss1Value * 100).ToString() : (tradeObject.stopLoss2Value * 100).ToString()
+                stop_loss_perc = tradeObject.target1CloseCause.Equals("STOP_LOSS") ? (tradeObject.stopLoss1Value * 100).ToString() : ((tradeObject.target1Value)/2 * 100).ToString() //если сработал стоплосс 2 - доходность расчитывается как таргет профита 1 деленное на 2.
                 ,
                 trade_dur_forecast = tradeObject.tradeDuration.ToString()
                 ,
