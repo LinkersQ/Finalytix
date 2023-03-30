@@ -41,7 +41,7 @@ namespace GetWarmCandles
 
                 //Теперь формируем запрос GetCandlesRequest для каждого инструментафо
                 List<GetCandlesRequest> requests = GetRequests(currentDateTime, searchPeriod, tinkoffInvestApiFunctions, shares.Where(w => w.country_of_risk.Equals("RU")).ToList());
-
+                var req = requests.FirstOrDefault(f => f.Figi.Equals("BBG000K3STR7"));
                 #endregion
                 #region Получаем свечи от тинькофф и записываем в таблицу
                 //Запускаем процесс получения данных по свечам от TinkoffAPI
@@ -52,7 +52,7 @@ namespace GetWarmCandles
                 log.Info("Получено " + responses.Count + " свечей по " + responses.Sum(c => c.CandlesResponse.Candles.Count) + " инструментам");
 
                 //Сохраняем полученные свечи в таблицу tmp_warm_history_candles
-
+                var r = responses.FirstOrDefault(f => f.Figi.Equals("BBG000K3STR7"));
                 log.Info("Приступаю к записи полученных данных в таблицу tmp_warm_history_candles");
                 PutCandlesIntoDB(connectionString, currentDateTime, dBConnector, responses);
 
@@ -104,6 +104,10 @@ namespace GetWarmCandles
             foreach (var response in responses)
             {
                 Console.WriteLine("Отправляю на запись figi {0}. Нужно записать {1} свечей...", response.Figi, response.CandlesResponse.Candles.Count);
+                if (response.Figi == "BBG004S687G6")
+                {
+                    Console.WriteLine();
+                }
                 var result = dBConnector.WriteWarmCandles(response, connectionString, currentDateTime);
                 if (result)
                     Console.WriteLine("Свечи для figi {0} успешно записаны.", response.Figi);
@@ -133,7 +137,7 @@ namespace GetWarmCandles
             }
             catch (Exception ex)
             {
-                log.Error("Во время формирования списка заппросов к TinkoffAPI возгникла ошибка");
+                log.Error("Во время формирования списка заппросов к TinkoffAPI возникла ошибка");
                 log.Error(ex.ToString());
             }
             return requests;
