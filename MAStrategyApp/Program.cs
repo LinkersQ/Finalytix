@@ -2,6 +2,7 @@
 using FinInvestLibrary.Objects;
 using FinInvestLibrary.Objects.Trade;
 using log4net;
+using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using System.Security.Cryptography.X509Certificates;
 
@@ -623,14 +624,77 @@ namespace MAStrategyApp
                         float currMinPrice = candle.minPrice;
                         float currClosePrice = candle.closePrice;
 
+                        //Проблема. Все сделки обрабатываются как LONG
+                        //Нужно добавить функцию, которая будет вычислять - закрыта или нет long или short рекомендация и выдавать параметр, на котором должна работать следующая логика
+
+                        bool result_1_target = false;
+                        bool result_2_target = false;
+                        bool result_stopLoss = false;
+                        log.Info("Проверяю сработку таргетов и стопов");
+                        log.Info("Тип рекомендации: " + trade.tradeType);
+                        if (trade.tradeType.Equals("LONG"))
+                        {
+                            log.Info("Выполняю проверки для LONG рекомендаций");
+                            if ((currClosePrice >= target1Price || currMaxPrice >= target1Price) & !trade.target1CloseCause.Equals("PROFIT"))
+                            {
+                                log.Info("\tTarget 1: (currClosePrice(" + currClosePrice + ") >= target1Price(" + target1Price + ") или currMaxPrice(" + currMaxPrice + ") >= target1Price(" + target1Price + ")) и target1CloseCause != PROFIT (" + trade.target1CloseCause + ")");
+                                result_1_target = true;
+                                log.Info("\t\tРезультат вычисления = " + result_1_target);
+
+                            }
+                            if ((currClosePrice >= target2Price || currMaxPrice >= target2Price) & !trade.target2CloseCause.Equals("PROFIT"))
+                            {
+                                log.Info("\tTarget 2: (currClosePrice(" + currClosePrice + ") >= target2Price(" + target2Price + ") или currMaxPrice(" + currMaxPrice + ") >= target2Price(" + target2Price + ")) и target2CloseCause != PROFIT (" + trade.target2CloseCause + ")");
+                                result_2_target = true;
+                                log.Info("\t\tРезультат вычисления = " + result_2_target);
+                            }
+                            if (currClosePrice <= stopLossPrice || currMinPrice <= stopLossPrice)
+                            {
+                                log.Info("\tcurrClosePrice(" + currClosePrice + ") <= stopLossPrice(" + stopLossPrice + ")");
+                                result_stopLoss = true;
+                                log.Info("\t\tРезультат вычисления = " + result_stopLoss);
+                            }
+
+                        }
+                        else if (trade.tradeType.Equals("SHORT"))
+                        {
+                            log.Info("Выполняю проверки для SHORT рекомендаций");
+                            if ((currClosePrice <= target1Price || currMinPrice <= target1Price) & !trade.target1CloseCause.Equals("PROFIT"))
+                            {
+                                log.Info("\tTarget 1: (currClosePrice(" + currClosePrice + ") <= target1Price(" + target1Price + ") или currMaxPrice(" + currMaxPrice + ") <= target1Price(" + target1Price + ")) и target1CloseCause != PROFIT (" + trade.target1CloseCause + ")");
+                                result_1_target = true;
+                                log.Info("\t\tРезультат вычисления = " + result_1_target);
+                            }
+                            if ((currClosePrice <= target2Price || currMinPrice <= target2Price) & !trade.target2CloseCause.Equals("PROFIT"))
+                            {
+                                log.Info("\tTarget 2: (currClosePrice(" + currClosePrice + ") <= target2Price(" + target2Price + ") или currMaxPrice(" + currMaxPrice + ") <= target2Price(" + target2Price + ")) и target2CloseCause != PROFIT (" + trade.target2CloseCause + ")");
+                                result_2_target = true;
+                                log.Info("\t\tРезультат вычисления = " + result_2_target);
+                            }
+                            if (currClosePrice >= stopLossPrice || currMaxPrice >= stopLossPrice)
+                            {
+                                log.Info("\tcurrClosePrice(" + currClosePrice + ") >= stopLossPrice(" + stopLossPrice + ")");
+                                result_stopLoss = true;
+                                log.Info("\t\tРезультат вычисления = " + result_stopLoss);
+                            }
+                        }
+                        
+                        log.Info("currMaxPrice: " + currMaxPrice);
+                        log.Info("currClosePrice: " + currClosePrice);
+                        log.Info("currMinPrice: " + currMinPrice);
+                        log.Info("Target 1 (" + target1Price + "): " + result_1_target);
+                        log.Info("Target 2 (" + target2Price + "): " + result_2_target);
+                        log.Info("StopLoss (" + stopLossPrice + "): " + result_stopLoss);
+
                         //проверяем, что Target1 еще не закрыт (проверка по полю target1CloseCause)
                         if (!trade.target1CloseCause.Equals("PROFIT") & !trade.target1CloseCause.Equals("STOP_LOSS"))
                         {
                             //Проверяем достижение первой цели
-                            if  ((currClosePrice >=  target1Price || currMaxPrice >= target1Price) & !trade.target1CloseCause.Equals("PROFIT"))
+                            if (result_1_target)
                             //if (target1Price >= currMinPrice & target1Price <= currMaxPrice & !trade.target1CloseCause.Equals("PROFIT"))
                             {
-                                //ПРОФИТ 1 достигнут!
+
+                                log.Info("ПРОФИТ 1 достигнут!");
                                 //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                 trade.target1ClosePrice = target1Price;
                                 trade.target1CloseDT = candle.candleOpenDt;
@@ -643,7 +707,7 @@ namespace MAStrategyApp
                                     + "', stopLoss2Value = " + trade.stopLoss2Value.ToString().Replace(',', '.') + " WHERE t.tradeid = '" + trade.tradeId + "'";
 
                                 string ticker = new PgExecuter(connectionString, log).ExecuteScalarQuery("SELECT TICKER FROM SHARES WHERE FIGI = '" + trade.figi + "'");
-                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_1_DONE.txt",TG_CHANNEL_ID);
+                                string jsonObj = JSONSerializedTrade(trade, ticker, "PROFIT_1_DONE.txt", TG_CHANNEL_ID);
 
                                 string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + trade.tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
 
@@ -651,12 +715,11 @@ namespace MAStrategyApp
                                 new PgExecuter(connectionString, log).ExecuteNonQuery(sqlCommand);
                             }
 
-                            //Проверяем достижение второй цели. Если цель достигнута - закрываем сделку
-
-                            //if (target2Price >= currMinPrice & target2Price <= currMaxPrice & !trade.target2CloseCause.Equals("PROFIT"))
-                            if ((currClosePrice >= target2Price || currMaxPrice >= target2Price) & !trade.target2CloseCause.Equals("PROFIT"))
+                            //Проверяем достижение второй цели. Если цель достигнута - закрываем рекомендацию
+                            if (result_2_target)
                             {
                                 //ПРОФИТ 2 достигнут
+                                log.Info("ПРОФИТ 2 достигнут!");
                                 //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                 trade.target2ClosePrice = target2Price;
                                 trade.target2CloseDT = candle.candleOpenDt;
@@ -664,9 +727,9 @@ namespace MAStrategyApp
                                 trade.trade_is_close_communication = true;
 
 
-                                string sqlCommand = "UPDATE public.trades t SET target1ClosePrice = " + trade.target2ClosePrice.ToString().Replace(',', '.')
-                                    + ", target1CloseDT = '" + trade.target2CloseDT.ToString()
-                                    + "', target1CloseCause = '" + trade.target2CloseCause
+                                string sqlCommand = "UPDATE public.trades t SET target2ClosePrice = " + trade.target2ClosePrice.ToString().Replace(',', '.')
+                                    + ", target2CloseDT = '" + trade.target2CloseDT.ToString()
+                                    + "', target2CloseCause = '" + trade.target2CloseCause
                                     + "', trade_is_close_communication = '" + trade.trade_is_close_communication
                                     + "' WHERE t.tradeid = '" + trade.tradeId + "'";
 
@@ -684,14 +747,15 @@ namespace MAStrategyApp
                             }
 
                             //Проверяем на срабатывание StopLoss
-                            if (currClosePrice <= stopLossPrice)
+                            if (result_stopLoss)
                             {
                                 //Проверяем какой именно стоп сработал (от первой цели или от второй?)
 
                                 //Сработал 1-й стоп: обновляем цифры и закрываем сделку
                                 if (!trade.target1CloseCause.Equals("PROFIT"))
                                 {
-                                    //Сработал первый стоп лосс
+
+                                    log.Info("Сработал первый стоп лосс");
                                     //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                     trade.target1ClosePrice = stopLossPrice;
                                     trade.target1CloseDT = candle.candleOpenDt;
@@ -719,7 +783,7 @@ namespace MAStrategyApp
                                 //Сработал 2-й стоп: обновляем цифры и закрываем сделку
                                 else if (!trade.target2CloseCause.Equals("PROFIT"))
                                 {
-                                    //Сработал второй стоп лосс
+                                    log.Info("Сработал второй стоп лосс");
                                     trade.target2ClosePrice = stopLossPrice;
                                     trade.target2CloseDT = candle.candleOpenDt;
                                     trade.target2CloseCause = "STOPLOSS_2";
@@ -751,9 +815,9 @@ namespace MAStrategyApp
                         else if (!trade.target2CloseCause.Equals("PROFIT") & !trade.target2CloseCause.Equals("STOP_LOSS"))
                         {
                             //Проверяем достижение второй цели. Если цель достигнута - закрываем сделку
-                            if (target2Price >= currMinPrice & target2Price <= currMaxPrice & !trade.target2CloseCause.Equals("PROFIT"))
+                            if (result_2_target)
                             {
-                                //ПРОФИТ 2 достигнут
+                                log.Info("ПРОФИТ 2 достигнут");
                                 //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                 trade.target2ClosePrice = target2Price;
                                 trade.target2CloseDT = candle.candleOpenDt;
@@ -781,7 +845,7 @@ namespace MAStrategyApp
                             }
 
                             //Проверяем на срабатывание StopLoss
-                            if (currClosePrice <= stopLossPrice) //Решение о фиксации убытка принимается на основании цены закрытия сделки (в том числе и внутри дня)
+                            if (result_stopLoss) //Решение о фиксации убытка принимается на основании цены закрытия сделки (в том числе и внутри дня)
                             {
                                 //Проверяем какой именно стоп сработал (от первой цели или от второй?)
 
@@ -789,6 +853,7 @@ namespace MAStrategyApp
                                 if (!trade.target1CloseCause.Equals("PROFIT"))
                                 {
                                     //Сработал первый стоп лосс
+                                    log.Info("Сработал первый стоп лосс");
                                     //Обновляем информацию в сделке - достижение таргета и новый StopLoss
                                     trade.target1ClosePrice = stopLossPrice;
                                     trade.target1CloseDT = candle.candleOpenDt;
@@ -815,6 +880,7 @@ namespace MAStrategyApp
                                 else if (!trade.target2CloseCause.Equals("PROFIT"))
                                 {
                                     //Сработал второй стоп лосс
+                                    log.Info("Сработал второй стоп лосс");
                                     trade.target2ClosePrice = stopLossPrice;
                                     trade.target2CloseDT = candle.candleOpenDt;
                                     trade.target2CloseCause = "STOPLOSS_2";
@@ -839,6 +905,7 @@ namespace MAStrategyApp
 
                             }
                         }
+                        
                     }
                 }
             }
@@ -1104,8 +1171,8 @@ namespace MAStrategyApp
         {
 
             string getCandlesForAnalisys = string.Empty;
-
-            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.candle_start_dt_utc > '" + tradeObject.openCandleDt.AddDays(-1) + "'  order by uhcas.candle_start_dt_utc";
+            //Тут нужно переррабатывать - нужен онлайн поток по открытым сделкам
+            getCandlesForAnalisys = "select id, figi, candle_start_dt_utc, interval_" + FAST_INTERVAL + ", interval_" + SLOW_INTERVAL + ", open_price, close_price ,min_price, max_price  from public.union_history_candles_all_scales uhcas join union_candles_all_intervals ucai on uhcas.id = ucai.candle_id where ucai.calculate_type = 'MOVING_AVG_CLOSE'  and uhcas.scale = '" + scaleName + "'  and uhcas.figi = '" + tradeObject.figi + "' and uhcas.candle_start_dt_utc > '" + tradeObject.openCandleDt + "'  order by uhcas.candle_start_dt_utc";
 
             List<string> candlesStrings = new PgExecuter(connectionString, log).ExecuteReader(getCandlesForAnalisys);
 
