@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TCSStreamReader", "TCSStrea
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MAStrategyApp", "MAStrategyApp\MAStrategyApp.csproj", "{4CEC0B86-221F-4B17-9462-7D18C8876869}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinGrowPointPublisherAPP", "FinGrowPointPublisherAPP\FinGrowPointPublisherAPP.csproj", "{BB71B264-A0B9-422B-8704-E90B6F439310}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinGrowPointPublisherAPP", "FinGrowPointPublisherAPP\FinGrowPointPublisherAPP.csproj", "{BB71B264-A0B9-422B-8704-E90B6F439310}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telegram.Bot.Extensions.Polling", "Telegram.Bot.Extensions.Polling\Telegram.Bot.Extensions.Polling.csproj", "{8AF38A35-8685-4556-887B-0B1F7E1F3C21}"
 EndProject
