@@ -23,7 +23,10 @@
     <None Update="Configurations\Templates\CLOSE_TRADE_TEMPLATE.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Configurations\Templates\OPEN_TRADE.txt">
+    <None Update="Configurations\Templates\OPEN_LONG_IDEA.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Configurations\Templates\OPEN_SHORT_IDEA.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Configurations\TG_TOKEN.txt">

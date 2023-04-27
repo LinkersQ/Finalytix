@@ -1,4 +1,6 @@
-﻿namespace FinInvestLibrary.Objects.Trade
+﻿using Tinkoff.InvestApi.V1;
+
+namespace FinInvestLibrary.Objects.Trade
 {
     public class TradeObject
     {
@@ -42,6 +44,9 @@
         //17.03.2023
         private bool _trade_is_close_analytic; //статус сделки для аналитической логики
         private bool _trade_is_close_communication; //статус сделки для публикуемых сделок
+        
+        //27.04.2023
+        private ShareObject _shareObject;
 
 
 
@@ -86,6 +91,9 @@
         //17.03.2023
         public bool trade_is_close_analytic { get { return _trade_is_close_analytic; } set { _trade_is_close_analytic = value; } }
         public bool trade_is_close_communication { get { return _trade_is_close_communication; } set { _trade_is_close_communication = value; } }
+
+        //27.04.2023
+        public ShareObject shareObject { get { return _shareObject; } set { _shareObject = value; } }
 
     }
 }

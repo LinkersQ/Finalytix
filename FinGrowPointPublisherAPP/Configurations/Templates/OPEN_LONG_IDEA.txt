@@ -1,0 +1,13 @@
+﻿Событие: Новая торговая идея 
+Актив: #%TIKER%
+Название: %NAME%
+Тип идеи: %TRADE_TYPE%
+
+Зона входа: %OPEN_PRICE%
+Зона профита 1: %PROFIT_1_PRICE% (%PROFIT_1_PERC%)
+Зона профита 2: %PROFIT_2_PRICE% (%PROFIT_2_PERC%)
+Зона стопа: %STOP_LOSS_PRICE%  (%STOP_LOSS_PERC%)
+
+Рассчетная длительность: %TRADE_DURATION% дней
+
+Отобразить все сообщения по идеи: #%TRADE_ID%

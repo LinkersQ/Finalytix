@@ -4,6 +4,7 @@ using FinInvestLibrary.Objects.Trade;
 using log4net;
 using Microsoft.VisualBasic;
 using Newtonsoft.Json;
+using System.Reflection.PortableExecutable;
 using System.Security.Cryptography.X509Certificates;
 
 namespace MAStrategyApp
@@ -24,21 +25,24 @@ namespace MAStrategyApp
             log.Info(@"/---------Start---------\");
 
             log.Info("Конфигурирую приложение");
-            string runType, strategyName, scaleName, connectionString, tg_channel_id;
+            string runType, strategyName, scaleName, connectionString, tg_channel_id, country_of_market;
             int exitCode = 9999;
             try
             {
 #if DEBUG
-                runType = "trade_close_point_trades_for_channel";
+                runType = "trade_open_point";
                 strategyName = "MA_12/26";
                 scaleName = "1_day_scale";
                 tg_channel_id= "-1001820470601";
+                country_of_market = "RU";
+
 
 #else
                 runType = args[0];//"trade_close_point";//args[0];
                 strategyName = args[1]; //args[1]; //"MA_12/26";
                 scaleName = args[2];//args[2];
                 tg_channel_id= args[3];
+                country_of_market = args[4];
 #endif
                 string appPath = Environment.CurrentDirectory;
                 string connectionStringPath = appPath + "\\connectionString.txt";
@@ -68,13 +72,15 @@ namespace MAStrategyApp
 
 
             log.Info("Тип запуска: " + runType);
+            log.Info("Рынок: " + country_of_market);
             log.Info("Стратегия: " + STRATEGY_NAME);
             log.Info("Масштаб: " + scaleName);
             log.Info("Строка подключения: " + connectionString);
             log.Info("Конфигурирование завершено");
 
             //Получаю список активов, по которым требуется рассчитывать и контролировать сделки
-            var shares = new FinBaseConnector().GetSharesFromDB(connectionString).Where(w => w.country_of_risk.Equals("RU")).ToList();
+            List<ShareObject> shares = GetActualSharesList(country_of_market, connectionString).Where(w => w.country_of_risk.Equals(country_of_market)).Where(w => w.UnavailableForAnalysys is false).ToList();
+
             log.Info("Работаю по активам: " + shares.Count());
             string shares2Log = string.Empty;
             foreach (var sha in shares.ToList())
@@ -139,6 +145,63 @@ namespace MAStrategyApp
             return exitCode;
         }
 
+        ///запрос выполняется к двум таблицам.
+        ///1-я - таблица со списком акций - Shares
+        ///2-я - таблица со списком акций с известными ошибками, по которым не нужно проводить технический анализ.
+        ///Select работает через left join. В случае если поле es.ticker as excluded_ticker не равно NULL - в объекте SharesObj проставляется флаг UnavailableForAnalysys
+        private static List<ShareObject> GetActualSharesList(string country_of_market, string connectionString)
+        {
+            var query_result = new PgExecuter(connectionString, log).ExecuteReader("SELECT s.figi, s.ticker, s.class_code, s.isin, s.lot, s.currency, s.short_enabled_flag, s.name, s.exchange, s.issue_size, s.country_of_risk, s.country_of_risk_name, s.sector, s.issue_size_plan, s.trading_status, s.otc_flag, s.buy_available_flag, s.sell_available_flag, s.div_yield_flag, s.share_type, s.min_price_increment, s.api_trade_available_flag, s.uid, s.real_exchange, s.position_uid, s.for_iis_flag, s.for_qual_investor_flag, s.weekend_flag, s.blocked_tca_flag, es.ticker as excluded_ticker FROM public.Shares s left join excluded_shares es on (es.ticker = s.ticker or es.isin = s.isin or es.figi = s.figi)");
+            List<ShareObject> shObjList = new List<ShareObject>();
+            foreach (var str in query_result)
+            {
+                var partsOfRow = str.Split(';');
+                ShareObject shObj = new ShareObject();
+                shObj.figi = partsOfRow[0];
+                shObj.ticker = partsOfRow[1];
+                shObj.class_code = partsOfRow[2]; 
+                shObj.isin = partsOfRow[3];
+                shObj.lot = Convert.ToInt32(partsOfRow[4]);
+                shObj.currency = partsOfRow[5];
+                shObj.short_enabled_flag = Convert.ToBoolean(partsOfRow[6]);
+                shObj.name = partsOfRow[7];
+                shObj.exchange = partsOfRow[8];
+                shObj.issue_size = Convert.ToInt64(partsOfRow[9]);
+                shObj.country_of_risk = partsOfRow[10];
+                shObj.country_of_risk_name = partsOfRow[11];
+                shObj.sector = partsOfRow[12];
+                shObj.issue_size_plan = Convert.ToInt64(partsOfRow[13]);
+                shObj.trading_status = partsOfRow[14];
+                shObj.otc_flag = Convert.ToBoolean(partsOfRow[15]);
+                shObj.buy_available_flag = Convert.ToBoolean(partsOfRow[16]);
+                shObj.sell_available_flag = Convert.ToBoolean(partsOfRow[17]);
+                shObj.div_yield_flag = Convert.ToBoolean(partsOfRow[18]);
+                shObj.share_type = partsOfRow[19];
+                shObj.min_price_increment = (float)Convert.ToDouble(partsOfRow[20]);
+                shObj.api_trade_available_flag = Convert.ToBoolean(partsOfRow[21]);
+                shObj.uid = partsOfRow[22];
+                shObj.real_exchange = partsOfRow[23];
+                shObj.position_uid = partsOfRow[24];
+                shObj.for_iis_flag = Convert.ToBoolean(partsOfRow[25]);
+                shObj.for_qual_investor_flag = Convert.ToBoolean(partsOfRow[26]);
+                shObj.weekend_flag = Convert.ToBoolean(partsOfRow[27]);
+                shObj.blocked_tca_flag = Convert.ToBoolean(partsOfRow[28]);
+                if (shObj.ticker.Equals("MSRS"))
+                    Console.WriteLine(shObj.ticker);
+
+                if (partsOfRow[29].Length<1)
+                {
+                    shObj.UnavailableForAnalysys = false;
+                }
+                else
+                {
+                    shObj.UnavailableForAnalysys = true;
+                }
+                shObjList.Add(shObj);
+            }
+            return shObjList;
+        }
+
         /// <summary>
         /// Модуль открытия новых сделок
         /// </summary>
@@ -196,6 +259,7 @@ namespace MAStrategyApp
                             try
                             {
                                 TradeObject tradeObject = new TradeObject();
+                                tradeObject.shareObject = share;
                                 tradeObject.tradeId = Guid.NewGuid().ToString().Replace("-", "");
                                 tradeObject.tradeType = "LONG";
                                 tradeObject.stratName = strategyName;
@@ -241,6 +305,7 @@ namespace MAStrategyApp
                             try
                             {
                                 TradeObject tradeObject = new TradeObject();
+                                tradeObject.shareObject = share;
                                 tradeObject.tradeId = Guid.NewGuid().ToString().Replace("-", "");
                                 tradeObject.tradeType = "SHORT";
                                 tradeObject.stratName = strategyName;
@@ -302,9 +367,18 @@ namespace MAStrategyApp
                         //подготавливаем данные для записи в БД
                         if (Convert.ToInt32(dbTradesCountResult) == 0)
                         {
+                            string jsonObj = string.Empty;
                             string sqlCommand_analysis = PrepareSaveTradeCommand(sharesWithTrades, i, ii, "for_analysis");
                             var ticker = tradeTargetObjects.FirstOrDefault(f => f.figi.Equals(sharesWithTrades[i].tradeObjects[ii].figi)).ticker.ToString();
-                            string jsonObj = JSONSerializedTrade(sharesWithTrades[i].tradeObjects[ii], ticker, "OPEN_TRADE.txt", TG_CHANNEL_ID);
+                            if (sharesWithTrades[i].tradeObjects[ii].tradeType.Equals("SHORT"))
+                            {
+                                jsonObj = JSONSerializedTrade(sharesWithTrades[i].tradeObjects[ii], ticker, "OPEN_SHORT_IDEA.txt", TG_CHANNEL_ID);
+                            }
+                            else
+                            {
+                                jsonObj = JSONSerializedTrade(sharesWithTrades[i].tradeObjects[ii], ticker, "OPEN_LONG_IDEA.txt", TG_CHANNEL_ID);
+                            }
+                            
 
                             //сохраняем информацию о сделках в БД
                             string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + sharesWithTrades[i].tradeObjects[ii].tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
@@ -344,11 +418,11 @@ namespace MAStrategyApp
             {
                 trade_id = tradeObject.tradeId
                 ,
-                figi = tradeObject.figi
+                figi = tradeObject.shareObject.figi
                 ,
-                name = ""
+                name = tradeObject.shareObject.name
                 ,
-                ticker = "#" + ticker
+                ticker = "#" + tradeObject.shareObject.ticker
                 ,
                 strat_name = tradeObject.stratName
                 ,
@@ -372,7 +446,7 @@ namespace MAStrategyApp
                             (tradeObject.openTradePrice + (tradeObject.stopLoss1Value * tradeObject.openTradePrice)).ToString()
                             : (tradeObject.openTradePrice - (tradeObject.stopLoss1Value * tradeObject.openTradePrice)).ToString()
                 ,
-                stop_loss_perc = tradeObject.target1CloseCause.Equals("STOP_LOSS") ? (tradeObject.stopLoss1Value * 100).ToString() : ((tradeObject.target1Value)/2 * 100).ToString() //если сработал стоплосс 2 - доходность расчитывается как таргет профита 1 деленное на 2.
+                stop_loss_perc = tradeObject.target1CloseCause.Equals("STOP_LOSS") ? (tradeObject.stopLoss1Value * 100).ToString() : ((tradeObject.target1Value) / 2 * 100).ToString() //если сработал стоплосс 2 - доходность расчитывается как таргет профита 1 деленное на 2.
                 ,
                 trade_dur_forecast = tradeObject.tradeDuration.ToString()
                 ,
@@ -383,6 +457,8 @@ namespace MAStrategyApp
                 message_template_name = template_id
                 ,
                 stop_loss_price_for_profit_2 = tradeObject.openTradePrice.ToString()
+                ,
+                tinkoffAvailableShort = tradeObject.shareObject.short_enabled_flag is true ? "Разрешен" : "Запрещен"
 
             };
             string jsonObj = JsonConvert.SerializeObject(obj);

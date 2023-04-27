@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\FinInvestLibrary\FinInvestLibrary.csproj" />
+    <ProjectReference Include="..\FinInvestLibrary\FinInvestLibrary.csproj" />
   </ItemGroup>
 
   <ItemGroup>

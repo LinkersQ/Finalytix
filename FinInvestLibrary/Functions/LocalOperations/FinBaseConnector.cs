@@ -1,4 +1,5 @@
 ﻿using FinInvestLibrary.Objects;
+using log4net;
 using Npgsql;
 
 namespace FinInvestLibrary.Functions.LocalOperations
@@ -28,7 +29,12 @@ namespace FinInvestLibrary.Functions.LocalOperations
 
             if (allOK)
             {
-                var dBRequest = "SELECT figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag FROM public.Shares";
+                ///запрос выполняется к двум таблицам.
+                ///1-я - таблица со списком акций - Shares
+                ///2-я - таблица со списком акций с известными ошибками, по которым не нужно проводить технический анализ.
+                ///Select работает через left join. В случае если поле es.ticker as excluded_ticker не равно NULL - в объекте SharesObj проставляется флаг UnavailableForAnalysys
+                var dBRequest = "SELECT s.figi, s.ticker, s.class_code, s.isin, s.lot, s.currency, s.short_enabled_flag, s.name, s.exchange, s.issue_size, s.country_of_risk, s.country_of_risk_name, s.sector, s.issue_size_plan, s.trading_status, s.otc_flag, s.buy_available_flag, s.sell_available_flag, s.div_yield_flag, s.share_type, s.min_price_increment, s.api_trade_available_flag, s.uid, s.real_exchange, s.position_uid, s.for_iis_flag, s.for_qual_investor_flag, s.weekend_flag, s.blocked_tca_flag, es.ticker as excluded_ticker FROM public.Shares s left join excluded_shares es on (es.ticker = s.ticker or es.isin = s.isin or es.figi = s.figi)";
+
                 try
                 {
                     using var command = new NpgsqlCommand(dBRequest, connection);
@@ -65,7 +71,14 @@ namespace FinInvestLibrary.Functions.LocalOperations
                         shObj.for_qual_investor_flag = reader.GetBoolean(26);
                         shObj.weekend_flag = reader.GetBoolean(27);
                         shObj.blocked_tca_flag = reader.GetBoolean(28);
-
+                        if (reader.GetString(29) is null)
+                        {
+                            shObj.UnavailableForAnalysys = false;
+                        }
+                        else
+                        { 
+                            shObj.UnavailableForAnalysys = true;
+                        }   
                         shObjList.Add(shObj);
 
                     }
@@ -77,6 +90,8 @@ namespace FinInvestLibrary.Functions.LocalOperations
                     allOK = false;
 
                 }
+
+                Console.WriteLine(shObjList.Count);
 
             }
             else
