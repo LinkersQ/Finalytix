@@ -1,5 +1,4 @@
 ﻿using FinInvestLibrary.Objects;
-using log4net;
 using Npgsql;
 
 namespace FinInvestLibrary.Functions.LocalOperations
@@ -76,9 +75,9 @@ namespace FinInvestLibrary.Functions.LocalOperations
                             shObj.UnavailableForAnalysys = false;
                         }
                         else
-                        { 
+                        {
                             shObj.UnavailableForAnalysys = true;
-                        }   
+                        }
                         shObjList.Add(shObj);
 
                     }

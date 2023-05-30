@@ -14,6 +14,7 @@
         private string? _guid;
         private bool _isParsingError;
 
+
         public string? figi { get { return _figi; } set { _figi = value; } }
         public DateTime? candle_start_dt { get { return _candle_start_dt; } set { _candle_start_dt = value; } }
         public float? open_price { get { return _open_price; } set { _open_price = value; } }
@@ -25,6 +26,15 @@
         public DateTime? insertdate { get { return _insertdate; } set { _insertdate = value; } }
         public string? guid { get { return _guid; } set { _guid = value; } }
         public bool isParsingError { get { return _isParsingError; } set { _isParsingError = value; } }
+
+
+
+        //02.05.2023
+        private int _id;
+        public int id { get { return _id; } set { _id = value; } }
+
+        private string _scale;
+        public string scale { get { return _scale; } set { _scale = value; } }
 
     }
 }

@@ -8,20 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <COMReference Include="{bee4bfec-6683-3e67-9167-3c0cbc68f40a}">
-      <WrapperTool>tlbimp</WrapperTool>
-      <VersionMinor>4</VersionMinor>
-      <VersionMajor>2</VersionMajor>
-      <Guid>bee4bfec-6683-3e67-9167-3c0cbc68f40a</Guid>
-    </COMReference>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Npgsql" Version="7.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\FinInvestLibrary\FinInvestLibrary.csproj" />
+    <ProjectReference Include="..\FinInvestLibrary\FinInvestLibrary.csproj" />
   </ItemGroup>
 
 </Project>

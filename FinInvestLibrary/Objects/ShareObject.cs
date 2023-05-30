@@ -44,11 +44,18 @@ namespace FinInvestLibrary.Objects
         private DateTimeOffset? _first_1min_candle_date;
         private DateTimeOffset? _first_1day_candle_date;
 
+        
+
         private int _lastCandleIdForStrategy;
         private List<CandleForSMAStratAnalysis> _candleForSMAStratAnalysisList;
         private List<TradeObject> _tradeObjects;
 
         private bool _UnavailableForAnalysys;
+
+        //04.05.2023 - Добавлена коллекция свечей для работы функционала по расчету MA EMA MACD
+        private List<Candle> _candleObjects;
+        public List<Candle> candleObjects { get { return _candleObjects; } set { _candleObjects = value; } }
+
 
         public string figi { get { return _figi; } set { _figi = value; } }
         public string ticker { get { return _ticker; } set { _ticker = value; } }

@@ -2,10 +2,7 @@
 using FinInvestLibrary.Objects;
 using FinInvestLibrary.Objects.Trade;
 using log4net;
-using Microsoft.VisualBasic;
 using Newtonsoft.Json;
-using System.Reflection.PortableExecutable;
-using System.Security.Cryptography.X509Certificates;
 
 namespace MAStrategyApp
 
@@ -30,7 +27,7 @@ namespace MAStrategyApp
             try
             {
 #if DEBUG
-                runType = "trade_open_point";
+                runType = "trade_close_point_trades_for_channel";
                 strategyName = "MA_12/26";
                 scaleName = "1_day_scale";
                 tg_channel_id= "-1001820470601";
@@ -41,7 +38,7 @@ namespace MAStrategyApp
                 runType = args[0];//"trade_close_point";//args[0];
                 strategyName = args[1]; //args[1]; //"MA_12/26";
                 scaleName = args[2];//args[2];
-                tg_channel_id= args[3];
+                tg_channel_id = args[3];
                 country_of_market = args[4];
 #endif
                 string appPath = Environment.CurrentDirectory;
@@ -90,7 +87,7 @@ namespace MAStrategyApp
                 shares2Log += v1 + "(" + v2 + "),";
             }
             log.Debug(shares2Log);
-            
+
 
             //Вызов стратегии
 
@@ -130,7 +127,7 @@ namespace MAStrategyApp
                 try
                 {
                     log.Info("Запущен режим мониторинга активных сделок (для рассылки) по стратегии " + STRATEGY_NAME);
-                    MA_Strategy_TradeWorker_TradesForChannel(connectionString, scaleName);
+                    MA_Strategy_TradeWorker_TradesForChannel(connectionString, scaleName, shares);
 
                 }
                 catch (Exception ex)
@@ -159,7 +156,7 @@ namespace MAStrategyApp
                 ShareObject shObj = new ShareObject();
                 shObj.figi = partsOfRow[0];
                 shObj.ticker = partsOfRow[1];
-                shObj.class_code = partsOfRow[2]; 
+                shObj.class_code = partsOfRow[2];
                 shObj.isin = partsOfRow[3];
                 shObj.lot = Convert.ToInt32(partsOfRow[4]);
                 shObj.currency = partsOfRow[5];
@@ -189,7 +186,7 @@ namespace MAStrategyApp
                 if (shObj.ticker.Equals("MSRS"))
                     Console.WriteLine(shObj.ticker);
 
-                if (partsOfRow[29].Length<1)
+                if (partsOfRow[29].Length < 1)
                 {
                     shObj.UnavailableForAnalysys = false;
                 }
@@ -226,10 +223,10 @@ namespace MAStrategyApp
                 log.Info("Работаю над активом " + share.name + "(" + share.ticker + ", " + share.figi + ")");
                 List<TradeObject> tradeObjectList = new List<TradeObject>();
                 //Проверяем каждую свечу на предмет пробоя короткой линией длинной линии. При этом учитываем значение предыдущей свечи. Если короткая
-                
+
                 for (int i = 1; i < share.candleForSMAStratAnalysisList.Count; i++)
                 {
-                    
+
                     int curr_str = i;
                     int prev_str = i - 1;
                     float prevValue = 0;
@@ -247,7 +244,7 @@ namespace MAStrategyApp
                     }
                     catch (Exception ex)
                     {
-                        log.Error("Не могу вычеслить переменные для стратегии " + strategyName + ". анализируемая свеча " + share.candleForSMAStratAnalysisList[curr_str].candleId);
+                        log.Error("Не могу вычислить переменные для стратегии " + strategyName + ". анализируемая свеча " + share.candleForSMAStratAnalysisList[curr_str].candleId);
                         log.Error(ex.ToString());
                     }
                     //Поиск точки входа в сделку LONG
@@ -352,7 +349,7 @@ namespace MAStrategyApp
 
             log.Info("Сохраняю найденные сделки по стратегии: " + strategyName);
             int tradesCount = 0;
-            var sharesWithTrades = shares.Where(w=>w.tradeObjects.Count>0).ToList();
+            var sharesWithTrades = shares.Where(w => w.tradeObjects.Count > 0).ToList();
             for (int i = 0; i < sharesWithTrades.Count(); i++)
             {
                 log.Info("Сохраняю сделки по активу: " + sharesWithTrades[i].name + "(" + sharesWithTrades[i].figi + ")");
@@ -378,7 +375,7 @@ namespace MAStrategyApp
                             {
                                 jsonObj = JSONSerializedTrade(sharesWithTrades[i].tradeObjects[ii], ticker, "OPEN_LONG_IDEA.txt", TG_CHANNEL_ID);
                             }
-                            
+
 
                             //сохраняем информацию о сделках в БД
                             string sqlCommand_Communications = "INSERT INTO public.communications (id,external_id,create_dt,message_content) VALUES ('" + Guid.NewGuid().ToString().Replace("-", "") + "','" + sharesWithTrades[i].tradeObjects[ii].tradeId + "','" + DateTime.Now.ToString() + "','" + jsonObj + "')";
@@ -619,18 +616,19 @@ namespace MAStrategyApp
         /// </summary>
         /// <param name="connectionString"></param>
         /// <param name="scaleName"></param>
-        private static void MA_Strategy_TradeWorker_TradesForChannel(string connectionString, string scaleName)
+        private static void MA_Strategy_TradeWorker_TradesForChannel(string connectionString, string scaleName, List<ShareObject> shares)
         {
             //получаем список активных сделок
             // List<TradeObject> tradeObjectList = GetActiveTrades(connectionString);
             log.Info("Получаю список активных рекомендаций");
-            List<TradeObject> trades = GetActiveTrades(connectionString,true).Where(w=>w.trade_is_close_communication is false).OrderBy(o => o.openCandleDt).ToList();
+            List<TradeObject> trades = GetActiveTrades(connectionString, true).Where(w => w.trade_is_close_communication is false).OrderBy(o => o.openCandleDt).ToList();
             log.Info("Получено " + trades.Count + " активных рекомендаций");
             foreach (var trade in trades)
             {
                 float target1Price = 0;
                 float target2Price = 0;
                 float stopLossPrice = 0;
+                trade.shareObject = shares.First(f => f.figi.Equals(trade.figi));
 
                 //обработка аналитической части сделки
                 if (trade.trade_is_close_analytic is false)
@@ -700,8 +698,6 @@ namespace MAStrategyApp
                         float currMinPrice = candle.minPrice;
                         float currClosePrice = candle.closePrice;
 
-                        //Проблема. Все сделки обрабатываются как LONG
-                        //Нужно добавить функцию, которая будет вычислять - закрыта или нет long или short рекомендация и выдавать параметр, на котором должна работать следующая логика
 
                         bool result_1_target = false;
                         bool result_2_target = false;
@@ -754,7 +750,7 @@ namespace MAStrategyApp
                                 log.Info("\t\tРезультат вычисления = " + result_stopLoss);
                             }
                         }
-                        
+
                         log.Info("currMaxPrice: " + currMaxPrice);
                         log.Info("currClosePrice: " + currClosePrice);
                         log.Info("currMinPrice: " + currMinPrice);
@@ -981,7 +977,7 @@ namespace MAStrategyApp
 
                             }
                         }
-                        
+
                     }
                 }
             }

@@ -32,7 +32,7 @@ namespace FinGrowPointPublisherAPP
             if (configStatus)
             {
                 ITelegramBotClient bot = new TelegramBotClient(TG_BOT_TOKEN);
-                GetAppConfiguration(ref CONNECTION_STRING);
+                GetAppConfiguration(ref CONNECTION_STRING, ref TEMPLATES_PATH);
 
 
                 while (1 == 1)
@@ -124,7 +124,7 @@ namespace FinGrowPointPublisherAPP
                 templateTXT = templateTXT.Replace("%SHORT_AVAILABLE_FLG%", message.tinkoffAvailableShort);
                 templateTXT = templateTXT.Replace("%PROFIT_1_PERC%", message.target_perc_1);
                 templateTXT = templateTXT.Replace("%PROFIT_2_PERC%", message.target_perc_2);
-                templateTXT = templateTXT.Replace("STOP_LOSS_PERC", message.stop_loss_perc);
+                templateTXT = templateTXT.Replace("%STOP_LOSS_PERC%", message.stop_loss_perc);
                 templateTXT = templateTXT.Replace("%STOP_LOSS_PRICE_FOR_PROFIT_2%", message.stop_loss_price_for_profit_2);
                 message.final_message = templateTXT;
                 result.Add(message);
@@ -183,7 +183,7 @@ namespace FinGrowPointPublisherAPP
         /// </summary>
         /// <param name="connectionString"></param>
         /// <param name="token"></param>
-        private static bool GetAppConfiguration(ref string connectionString)
+        private static bool GetAppConfiguration(ref string connectionString, ref string TEMPLATES_PATH)
         {
             bool result = false;
             try
@@ -195,7 +195,7 @@ namespace FinGrowPointPublisherAPP
                 string connectionStringPath = appPath + "\\connectionString.txt";
                 connectionString = System.IO.File.ReadAllText(connectionStringPath);
 
-                TEMPLATES_PATH = "D:\\MessagesTemplates";
+                TEMPLATES_PATH = "C:\\MessagesTemplates";
 
 
                 result = true;
