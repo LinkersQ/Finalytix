@@ -1,1 +1,1 @@
-﻿Host=188.32.96.37;Port=6543;Username=postgres;Password=#6TY0N0d;Database=FinBase
+﻿Host=188.32.96.37:6543;Username=postgres;Password=#6TY0N0d;Database=FinBase

@@ -95,7 +95,15 @@ namespace FinInvestLibrary.Functions.LocalOperations
                 using var command = new NpgsqlCommand(SQLCommand, connection);
                 command.CommandTimeout = 600;
                 var res = command.ExecuteScalar();
-                returnStr = res.ToString();
+                
+                if (res == null)
+                {
+                    returnStr = "SqlAnswerEmpty";
+                }
+                else
+                {
+                    returnStr = res.ToString();
+                }
                 connection.Close();
 
             }
@@ -103,6 +111,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
             {
                 log.Error("Не удалось выполнить инструкцию");
                 log.Error(ex.ToString());
+                connection.Close();
             }
             DateTime executeFinishDT = DateTime.Now.ToUniversalTime();
             log.Debug("Инструкция успешно выполнена");
@@ -156,6 +165,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
             {
                 log.Error("Не удалось выполнить инструкцию");
                 log.Error(ex.ToString());
+                connection.Close();
                 return returnListString;
             }
             DateTime executeFinishDT = DateTime.Now.ToUniversalTime();
@@ -235,7 +245,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
                                 @"' and c.duration = '" + dur +
                                 @"' where uhcas.figi = '" + share.figi +
                                 @"' and uhcas.scale = '" + scale +
-                                @"' and c.id is null and uhcas.is_closed_candle = true";
+                                @"' and c.id is null and uhcas.is_closed_candle = true and uhcas.candle_start_dt_utc > '01.01.2018'";
 
             var candlesStrings = ExecuteReader(sqlComm);
 
@@ -293,7 +303,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
         { 
             List<FinInvestLibrary.Objects.Candle> candleList = new List<FinInvestLibrary.Objects.Candle>();
 
-            string sqlComm = "select * from union_history_candles_all_scales uhcas where uhcas.figi = '" + inputCandle.figi + "' and uhcas.scale = '1_day_scale' and uhcas.candle_start_dt_utc <= '" + inputCandle.candle_start_dt + "' and EXTRACT(DOW from uhcas.candle_start_dt_utc) not in (0,6) and uhcas.is_closed_candle is true order by uhcas.candle_start_dt_utc desc limit " + duration ;
+            string sqlComm = "select * from union_history_candles_all_scales uhcas where uhcas.figi = '" + inputCandle.figi + "' and uhcas.scale = '1_day_scale' and uhcas.candle_start_dt_utc <= '" + inputCandle.candle_start_dt + "' and EXTRACT(DOW from uhcas.candle_start_dt_utc) not in (0,6) order by uhcas.candle_start_dt_utc desc limit " + duration ;
 
             var candlesStrings = ExecuteReader(sqlComm);
 
@@ -343,6 +353,23 @@ namespace FinInvestLibrary.Functions.LocalOperations
             string sqlComm = "select count(*) from calculations where candle_id = " + candle.id + " and calc_type = '" + calc_type + "' and duration = " + duration;
             string returnValueStr = ExecuteScalarQuery(sqlComm);
             returnValue = Convert.ToInt32(returnValueStr);
+            return returnValue;
+        }
+
+        public float GetPreviousValue(FinInvestLibrary.Objects.Candle candle, string duration, string calcType)
+        {
+            float returnValue;
+            
+            string sqlComm = "select value from calculations c left join union_history_candles_all_scales uhcas on uhcas.id = c.candle_id where c.calc_type = '" + calcType + "' and c.duration = " + duration + " and c.figi = '" + candle.figi + "' and uhcas.candle_start_dt_utc = '" + candle.candle_start_dt.Value.AddDays(-1) + "'";
+            string sqlResult = ExecuteScalarQuery(sqlComm);
+            if (sqlResult != "SqlAnswerEmpty")
+            {
+                returnValue = float.Parse(sqlResult);
+            }
+            else
+            {
+                returnValue = -1;
+            }
             return returnValue;
         }
     }

@@ -8,9 +8,9 @@ using log4net;
 using FinInvestLibrary.Functions.LocalOperations;
 using Npgsql;
 
-namespace TA.Metrics.Calculater
+namespace FinInvestLibrary.Functions.Mathematica
 {
-    public class Math
+    public class MathMA
     {
         private string connectionString = string.Empty;
         private NpgsqlConnection connection = null;
@@ -20,7 +20,7 @@ namespace TA.Metrics.Calculater
         /// </summary>
         /// <param name="connString">строка подключения к бд</param>
         /// <param name="log">объект логгера для низкоуровнего логирования</param>
-        public Math(string connString, ILog inputlog)
+        public MathMA(string connString, ILog inputlog)
         {
             connectionString = connString;
             connection = new NpgsqlConnection(connString);
@@ -73,8 +73,6 @@ namespace TA.Metrics.Calculater
                 {
                     log.Info("Предыдущий расчет существует. Он будет обновлен на новое значение");
                     new PgExecuter(connectionString, log).UpdateCalculationsTable(candle, calcType, dur, ma.ToString());
-
-
                 }
                 else
                 {
