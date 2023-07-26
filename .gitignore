@@ -367,3 +367,5 @@ FodyWeavers.xsd
 /GetShares/connectionString.txt
 /CandleWorker/token.txt
 /CandleWorker/connectionString.txt
+/TA.Metrics.Calculater/connectionString.txt
+/TA.Metrics.Calculater/token.txt
