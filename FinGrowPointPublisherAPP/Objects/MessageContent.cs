@@ -22,7 +22,7 @@
         private string _final_message;
         private string _stop_loss_price_for_profit_2;
         private string _tinkoffAvailableShort;
-
+        private string _trade_open_date;
 
         public string trade_id { get { return _trade_id; } set { _trade_id = value; } }
         public string figi { get { return _figi; } set { _figi = value; } }
@@ -44,6 +44,7 @@
         public string final_message { get { return _final_message; } set { _final_message = value; } }
         public string stop_loss_price_for_profit_2 { get { return _stop_loss_price_for_profit_2; } set { _stop_loss_price_for_profit_2 = value; } }
         public string tinkoffAvailableShort { get { return _tinkoffAvailableShort; } set { _tinkoffAvailableShort = value; } }
+        public string trade_open_date { get { return _trade_open_date; } set { _trade_open_date = value; } }
 
     }
 }

@@ -648,7 +648,7 @@ namespace MAStrategyApp
                     List<CandleForSMAStratAnalysis> candleForSMAStratAnalyses = GetCandlesSMAObjects(candlesStringList);
                     log.Debug("Получено " + candleForSMAStratAnalyses.Count + "свечей");
 
-                    //Расчитываем фактические цены закрытия сделки для публикации в канал
+                    //Рассчитываем фактические цены закрытия сделки для публикации в канал
                     if (trade.tradeType.Equals("LONG"))
                     {
                         target1Price = trade.openTradePrice + trade.openTradePrice * trade.target1Value;

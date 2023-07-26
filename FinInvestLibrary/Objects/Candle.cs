@@ -15,6 +15,8 @@
         private bool _isParsingError;
 
 
+
+
         public string? figi { get { return _figi; } set { _figi = value; } }
         public DateTime? candle_start_dt { get { return _candle_start_dt; } set { _candle_start_dt = value; } }
         public float? open_price { get { return _open_price; } set { _open_price = value; } }
@@ -36,5 +38,24 @@
         private string _scale;
         public string scale { get { return _scale; } set { _scale = value; } }
 
+        //13.06.2023
+        private bool _isDelete;
+        public bool isDelete { get { return _isDelete; } set { _isDelete = value; } }
+
+        //03.07.2023 
+        //добавлены для работы с приложением стратегий StrategyAPP
+        private Calculations.CalculationObject _calculation_current_fast;
+        private Calculations.CalculationObject _calculation_current_slow;
+
+        public Calculations.CalculationObject calculation_current_fast { get { return _calculation_current_fast; } set { _calculation_current_fast = value; } }
+        public Calculations.CalculationObject calculation_current_slow { get { return _calculation_current_slow; } set { _calculation_current_slow = value; } }
+
+
+
+        private Calculations.CalculationObject _calculation_prev_fast;
+        private Calculations.CalculationObject _calculation_prev_slow;
+
+        public Calculations.CalculationObject calculation_prev_fast { get { return _calculation_prev_fast; } set { _calculation_prev_fast = value; } }
+        public Calculations.CalculationObject calculation_prev_slow { get { return _calculation_prev_slow; } set { _calculation_prev_slow = value; } }
     }
 }

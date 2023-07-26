@@ -46,6 +46,15 @@
         //27.04.2023
         private ShareObject _shareObject;
 
+        //06.07.2023
+        private Candle _candleObject;
+
+        public Candle candleObject { get { return _candleObject; } set { _candleObject = value; } }
+
+
+
+
+
 
 
         public int maxtradepricecandleid { get { return _maxtradepricecandleid; } set { _maxtradepricecandleid = value; } }
@@ -93,5 +102,14 @@
         //27.04.2023
         public ShareObject shareObject { get { return _shareObject; } set { _shareObject = value; } }
 
+        //05.07.2023
+        private string _ticker; //тиккер
+        public string ticker { get { return _ticker; } set { _ticker = value; } }
+
+        private string _communication_channel_id;
+        public string communication_channel_id { get { return _communication_channel_id; } set { _communication_channel_id = value; } }
+
+        private string _communication_template;
+        public string communication_template { get { return _communication_template; } set { _communication_template = value; } }
     }
 }

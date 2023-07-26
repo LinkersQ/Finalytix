@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using FinInvestLibrary.Functions.LocalOperations;
 using FinInvestLibrary.Objects;
 using log4net;
-using FinInvestLibrary.Functions.LocalOperations;
 using Npgsql;
 
 namespace FinInvestLibrary.Functions.Mathematica
@@ -27,6 +22,21 @@ namespace FinInvestLibrary.Functions.Mathematica
             log = inputlog;
         }
 
+        public MathMA(ILog inputlog)
+        {
+            log = inputlog;
+        }
+
+        public float CalcMA(float[] floats)
+        {
+            float result;
+
+            var floatsMA = floats.ToList().Average();
+
+            result = floatsMA;
+
+            return result;
+        }
 
         public void MACalcAll(Candle candle, string duration, string calcType)
         {

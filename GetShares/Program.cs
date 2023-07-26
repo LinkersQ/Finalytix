@@ -18,7 +18,7 @@ namespace GetShares
 
             string appPath = Environment.CurrentDirectory;
             string connectionStringPath = appPath + "\\connectionString.txt";
-            string connectionString = File.ReadAllText(connectionStringPath);
+            string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
             string tokenPath = appPath + "\\token.txt";
             string token = File.ReadAllText(tokenPath);
 
@@ -103,7 +103,7 @@ namespace GetShares
             {
                 foreach (var shareObj in sharesToAddList)
                 {
-                    var dBRequest = "INSERT INTO public.Shares (figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag) VALUES(@figi, @ticker, @class_code, @isin, @lot, @currency, @short_enabled_flag, @name, @exchange, @issue_size, @country_of_risk, @country_of_risk_name, @sector, @issue_size_plan, @trading_status, @otc_flag, @buy_available_flag, @sell_available_flag, @div_yield_flag, @share_type, @min_price_increment, @api_trade_available_flag, @uid, @real_exchange, @position_uid, @for_iis_flag, @for_qual_investor_flag, @weekend_flag, @blocked_tca_flag)";
+                    var dBRequest = "INSERT INTO public.shares_new (figi, ticker, class_code, isin, lot, currency, short_enabled_flag, name, exchange, issue_size, country_of_risk, country_of_risk_name, sector, issue_size_plan, trading_status, otc_flag, buy_available_flag, sell_available_flag, div_yield_flag, share_type, min_price_increment, api_trade_available_flag, uid, real_exchange, position_uid, for_iis_flag, for_qual_investor_flag, weekend_flag, blocked_tca_flag) VALUES(@figi, @ticker, @class_code, @isin, @lot, @currency, @short_enabled_flag, @name, @exchange, @issue_size, @country_of_risk, @country_of_risk_name, @sector, @issue_size_plan, @trading_status, @otc_flag, @buy_available_flag, @sell_available_flag, @div_yield_flag, @share_type, @min_price_increment, @api_trade_available_flag, @uid, @real_exchange, @position_uid, @for_iis_flag, @for_qual_investor_flag, @weekend_flag, @blocked_tca_flag)";
                     try
                     {
                         using var command = new NpgsqlCommand(dBRequest, connection);

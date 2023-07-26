@@ -23,12 +23,11 @@ namespace FinInvestLibrary.Functions.LocalOperations
             {
                 GetCandlesRequest request = new GetCandlesRequest();
                 request.Figi = share.figi;
-                request.From = Timestamp.FromDateTime(currentDateTime.AddHours(-searchDayDeep));
+                request.From = Timestamp.FromDateTime(currentDateTime.AddDays(-searchDayDeep));
                 request.To = Timestamp.FromDateTime(currentDateTime);
-                request.Interval = CandleInterval._15Min;
+                request.Interval = CandleInterval.Day;
                 request.InstrumentId = share.uid;
                 candlesRequests.Add(request);
-                Thread.Sleep(2000);
             }
 
             return candlesRequests;

@@ -15,7 +15,7 @@ namespace ParseCandles
             string donePath = parrentPath + "\\Done";
             string errorPath = parrentPath + "\\Error";
             string zipPath = parrentPath + "\\Zip";
-            string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
+            string connectionString = "Host=188.32.96.37:6543;Username=postgres;Password=#6TY0N0d;Database=FinBase";
 
             print("Запуск ParseCandles", false);
 

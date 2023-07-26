@@ -20,7 +20,7 @@ namespace GetWarmCandles
                 //string connectionString = "Host=localhost;Username=postgres;Password=#6TY0N0d;Database=FinBase";
                 int requestTimeOutInterval = 600; //для ограничений кол-ва запросов к тинькофф апи
                 DateTime currentDateTime = DateTime.UtcNow; //Tinkoff API работает всегда в UTC - придерживаемся тоже UTC;
-                int searchPeriod = 24;//глубина поиска при запросе свечей
+                int searchPeriod = 2;//глубина поиска при запросе свечей
                 string appPath = Environment.CurrentDirectory;
                 string connectionStringPath = appPath + "\\connectionString.txt";
                 string connectionString = File.ReadAllText(connectionStringPath);
@@ -40,8 +40,8 @@ namespace GetWarmCandles
 
 
                 //Теперь формируем запрос GetCandlesRequest для каждого инструментафо
-                List<GetCandlesRequest> requests = GetRequests(currentDateTime, searchPeriod, tinkoffInvestApiFunctions, shares.Where(w => w.country_of_risk.Equals("RU")).ToList());
-                var req = requests.FirstOrDefault(f => f.Figi.Equals("BBG000K3STR7"));
+                List<GetCandlesRequest> requests = GetRequests(currentDateTime, searchPeriod, tinkoffInvestApiFunctions, shares);
+                var req = requests.FirstOrDefault(f => f.Figi.Equals("BBG004S687W8"));
                 #endregion
                 #region Получаем свечи от тинькофф и записываем в таблицу
                 //Запускаем процесс получения данных по свечам от TinkoffAPI
@@ -52,7 +52,7 @@ namespace GetWarmCandles
                 log.Info("Получено " + responses.Count + " свечей по " + responses.Sum(c => c.CandlesResponse.Candles.Count) + " инструментам");
 
                 //Сохраняем полученные свечи в таблицу tmp_warm_history_candles
-                var r = responses.FirstOrDefault(f => f.Figi.Equals("BBG000K3STR7"));
+                var r = responses.FirstOrDefault(f => f.Figi.Equals("BBG004S687W8"));
                 log.Info("Приступаю к записи полученных данных в таблицу tmp_warm_history_candles");
                 PutCandlesIntoDB(connectionString, currentDateTime, dBConnector, responses);
 
@@ -137,7 +137,7 @@ namespace GetWarmCandles
             }
             catch (Exception ex)
             {
-                log.Error("Во время формирования списка заппросов к TinkoffAPI возникла ошибка");
+                log.Error("Во время формирования списка запросов к TinkoffAPI возникла ошибка");
                 log.Error(ex.ToString());
             }
             return requests;

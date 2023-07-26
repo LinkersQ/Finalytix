@@ -126,9 +126,10 @@ namespace FinGrowPointPublisherAPP
                 templateTXT = templateTXT.Replace("%PROFIT_2_PERC%", message.target_perc_2);
                 templateTXT = templateTXT.Replace("%STOP_LOSS_PERC%", message.stop_loss_perc);
                 templateTXT = templateTXT.Replace("%STOP_LOSS_PRICE_FOR_PROFIT_2%", message.stop_loss_price_for_profit_2);
+                templateTXT = templateTXT.Replace("%TRADE_OPEN_DATE%", message.trade_open_date);
+                templateTXT = templateTXT.Replace("%STRAT_NAME%", message.strat_name);
                 message.final_message = templateTXT;
                 result.Add(message);
-
             }
             return result;
         }

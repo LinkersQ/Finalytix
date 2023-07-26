@@ -44,7 +44,7 @@ namespace FinInvestLibrary.Objects
         private DateTimeOffset? _first_1min_candle_date;
         private DateTimeOffset? _first_1day_candle_date;
 
-        
+
 
         private int _lastCandleIdForStrategy;
         private List<CandleForSMAStratAnalysis> _candleForSMAStratAnalysisList;

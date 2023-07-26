@@ -43,7 +43,7 @@ namespace QueryExecuter
                 log.Info("\toutputPath: " + outputPath);
                 log.Info("\toutputFileName: " + outputFileName);
                 log.Info("\tquery: " + query);
-                
+
                 log.Info("Выполняю запрос к БД...");
                 var result = new PgExecuter(connectionString, log).ExecuteScalarQuery(query);
                 if (result.Length == 0)
@@ -62,14 +62,14 @@ namespace QueryExecuter
                     File.WriteAllText(outputPath + "\\" + outputFileName, result);
                     log.Info("Запись успешно завершена");
                 }
-                catch (Exception ex) 
+                catch (Exception ex)
                 {
                     log.Error("Не удалось записать результат в выходной файл");
                     log.Error(ex.ToString());
                 }
                 log.Info("Программа завершена.");
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 log.Error("Не удалось прочитать параметры конфигурирования приложения.");
                 log.Error(ex.ToString());

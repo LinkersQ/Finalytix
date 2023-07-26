@@ -70,7 +70,7 @@ namespace FinInvestLibrary.Functions.LocalOperations
                         shObj.for_qual_investor_flag = reader.GetBoolean(26);
                         shObj.weekend_flag = reader.GetBoolean(27);
                         shObj.blocked_tca_flag = reader.GetBoolean(28);
-                        if (reader.GetString(29) is null)
+                        if (reader[29].ToString().Length == 0)
                         {
                             shObj.UnavailableForAnalysys = false;
                         }

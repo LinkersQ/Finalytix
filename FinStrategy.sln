@@ -21,9 +21,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinGrowPointPublisherAPP", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telegram.Bot.Extensions.Polling", "Telegram.Bot.Extensions.Polling\Telegram.Bot.Extensions.Polling.csproj", "{8AF38A35-8685-4556-887B-0B1F7E1F3C21}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TA.Metrics.Calculater", "TA.Metrics.Calculater\TA.Metrics.Calculater.csproj", "{BD835DD7-E4D3-4146-930D-C33B2AE4E2E2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TA.Metrics.Calculater", "TA.Metrics.Calculater\TA.Metrics.Calculater.csproj", "{BD835DD7-E4D3-4146-930D-C33B2AE4E2E2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QueryExecuter", "QueryExecuter\QueryExecuter.csproj", "{DD5988D6-CF47-4D0D-B16C-C94AD0FD2DB1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QueryExecuter", "QueryExecuter\QueryExecuter.csproj", "{DD5988D6-CF47-4D0D-B16C-C94AD0FD2DB1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StrategyAPP", "StrategyAPP\StrategyAPP.csproj", "{E72FC5D9-BB17-457D-A19A-2B5467EF94B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -98,6 +100,12 @@ Global
 		{DD5988D6-CF47-4D0D-B16C-C94AD0FD2DB1}.Development|Any CPU.Build.0 = Debug|Any CPU
 		{DD5988D6-CF47-4D0D-B16C-C94AD0FD2DB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DD5988D6-CF47-4D0D-B16C-C94AD0FD2DB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E72FC5D9-BB17-457D-A19A-2B5467EF94B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E72FC5D9-BB17-457D-A19A-2B5467EF94B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E72FC5D9-BB17-457D-A19A-2B5467EF94B4}.Development|Any CPU.ActiveCfg = Debug|Any CPU
+		{E72FC5D9-BB17-457D-A19A-2B5467EF94B4}.Development|Any CPU.Build.0 = Debug|Any CPU
+		{E72FC5D9-BB17-457D-A19A-2B5467EF94B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E72FC5D9-BB17-457D-A19A-2B5467EF94B4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
